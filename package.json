@@ -39,5 +39,8 @@
   },
   "engines": {
     "node": ">=20.12"
+  },
+  "overrides": {
+    "shell-quote": "^1.11.0"
   }
 }
