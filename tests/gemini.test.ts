@@ -32,6 +32,7 @@ const resume = {
   tips: ["Add a link to the live weather app."],
 };
 let failResume = false;
+const QUOTA_USED: string[] = []; // models that answer 429 (usage limit reached)
 const candidate = (text: string) => ({ candidates: [{ content: { role: "model", parts: [{ text }] }, finishReason: "STOP", index: 0 }] });
 
 beforeAll(async () => {
@@ -40,6 +41,10 @@ beforeAll(async () => {
   const notFound = (res: http.ServerResponse, m: string) => {
     res.writeHead(404, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ error: { code: 404, message: `models/${m} is no longer available to new users`, status: "NOT_FOUND" } }));
+  };
+  const quotaHit = (res: http.ServerResponse) => {
+    res.writeHead(429, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: { code: 429, message: "You exceeded your current quota", status: "RESOURCE_EXHAUSTED" } }));
   };
   const mock = http.createServer((req, res) => {
     let raw = "";
@@ -64,12 +69,14 @@ beforeAll(async () => {
       }
       if (url.includes(":streamGenerateContent")) {
         if (RETIRED.includes(m)) return notFound(res, m);
+        if (QUOTA_USED.includes(m)) return quotaHit(res);
         res.writeHead(200, { "Content-Type": "text/event-stream" });
         for (const t of ["Hi from ", "Gemini!"]) res.write(`data: ${JSON.stringify(candidate(t))}\r\n\r\n`);
         return res.end();
       }
       if (url.includes(":generateContent")) {
         if (RETIRED.includes(m)) return notFound(res, m);
+        if (QUOTA_USED.includes(m)) return quotaHit(res);
         const body = JSON.parse(raw);
         const wantsJson = body.generationConfig?.responseMimeType === "application/json";
         res.writeHead(200, { "Content-Type": "application/json" });
@@ -162,6 +169,16 @@ describe("Gemini integration", () => {
     expect(r.source).toBe("offline");
     expect(r.aiError).toBeTruthy();
     expect(r.data.resume.tips).toEqual([]);
+  });
+
+  it("switches to another model when the current one reaches its usage limit", async () => {
+    const ai = await import("../server/ai.ts");
+    QUOTA_USED.push("gemini-8-flash");
+    const r = await (await call("POST", "/plan/insight", {})).json();
+    QUOTA_USED.length = 0;
+    expect(r.source).toBe("ai");
+    // gemini-9-flash is retired, so the next best is the preview Flash model.
+    expect(ai.aiModel()).toBe("gemini-10-flash-preview");
   });
 
   it("writes a roadmap insight with AI", async () => {

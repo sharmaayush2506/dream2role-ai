@@ -36,7 +36,7 @@ Copy `.env.example` to `.env` and fill in your keys. The server loads `.env` on 
 | Variable | What it does |
 | --- | --- |
 | `GEMINI_API_KEY` | Turns on the AI features with Google Gemini (free key at aistudio.google.com/apikey). Used first if both AI keys are set. |
-| `GEMINI_MODEL` | Optional Gemini model (default `gemini-flash-latest`). If a model is retired or unavailable to your key, the app switches to the newest working Flash model automatically. |
+| `GEMINI_MODEL` | Optional Gemini model (default `gemini-flash-latest`). If a model is retired, unavailable to your key, or has used up its free-tier limit, the app switches to another working Flash model automatically. Examples: `gemini-flash-latest`, `gemini-flash-lite-latest`, `gemini-2.5-flash-lite`. |
 | `OPENAI_API_KEY` | Alternatively, turns on the AI features with OpenAI (needs billing credits). |
 | `OPENAI_MODEL` | Optional OpenAI model (default `gpt-5.4-mini`). |
 

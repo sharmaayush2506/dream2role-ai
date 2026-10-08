@@ -41,7 +41,7 @@ export function explainAiError(err: unknown): string {
     if (err.status === 404)
       return `The Gemini model "${model}" isn't available to your key. Remove GEMINI_MODEL from .env (the app then picks a working model itself), or set it to a model listed in aistudio.google.com, then restart.`;
     if (err.status === 429)
-      return "Gemini's usage limit was reached (free tier allows a limited number of requests per minute and per day). Wait a minute and try again.";
+      return "Gemini's usage limit was reached on every model the app tried (the free tier allows a limited number of requests per minute and per day, per model). Wait a minute and try again, or set GEMINI_MODEL to another model such as gemini-flash-lite-latest.";
     return `Gemini error ${err.status}: ${err.message}`;
   }
   if (err instanceof OpenAI.AuthenticationError)
@@ -85,26 +85,29 @@ async function geminiCandidates(): Promise<string[]> {
     .sort((a, b) => rank(a) - rank(b) || geminiVersion(b) - geminiVersion(a));
 }
 
-const isGeminiNotFound = (err: unknown) => err instanceof GeminiApiError && err.status === 404;
+/** The model is retired (404) or has used up its quota (429): another model may still work. */
+const isGeminiModelProblem = (err: unknown) => err instanceof GeminiApiError && (err.status === 404 || err.status === 429);
 
 /**
- * Runs a Gemini call; if Google says the model isn't available (retired models return 404),
- * switches to the best available Flash model and retries.
+ * Runs a Gemini call; if Google says the model isn't available (retired models return 404) or
+ * its usage limit is reached (429, free-tier limits are per model), switches to the best other
+ * Flash model and retries.
  */
 async function withGeminiModel<T>(fn: (model: string) => Promise<T>): Promise<T> {
   try {
     return await fn(model);
   } catch (err) {
-    if (!isGeminiNotFound(err)) throw err;
+    if (!isGeminiModelProblem(err)) throw err;
     const failed = model;
     for (const alt of (await geminiCandidates()).filter((n) => n !== failed).slice(0, 4)) {
       try {
         const out = await fn(alt);
         model = alt;
-        console.log(`AI: "${failed}" isn't available to this key, switched to "${alt}".`);
+        const why = (err as GeminiApiError).status === 429 ? "reached its usage limit" : "isn't available to this key";
+        console.log(`AI: "${failed}" ${why}, switched to "${alt}".`);
         return out;
       } catch (e) {
-        if (!isGeminiNotFound(e)) throw e;
+        if (!isGeminiModelProblem(e)) throw e;
       }
     }
     throw err;
