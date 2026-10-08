@@ -24,12 +24,16 @@ A Duolingo-style planner that turns **Dream Job + Current Skills + Time + Deadli
   - **AI project ideas** unlock after the first level test. Each one includes the full tech stack, features, milestones, ways to use AI to build it, and a portfolio tip.
   - **AI resume builder.** It writes a one-page resume in the format your target internship's field expects and pulls in your skills and certificates. You can download it as a PDF through the print dialog.
 
+- **Rolo, the AI coach** (🚀 "Ask Rolo" button on every page). A chat assistant that knows your dream job, plan, deadline, streak, next lesson, level tests and certificates. It explains topics, plans your study time, helps you prep for tests (without giving away answers) and points you to the right part of the app. Replies stream in as they're written.
+
+All AI features use the OpenAI Responses API (`server/ai.ts`, `server/coach.ts`): structured outputs for tests, internships, projects and resumes, and streaming for the coach.
+
 ## Configuration
 
 | Variable | What it does |
 | --- | --- |
-| `ANTHROPIC_API_KEY` | Turns on the AI features (Claude). Without it, tests, internships, projects and resumes use simple offline content marked "practice mode" or "offline". |
-| `ANTHROPIC_MODEL` | Optional model override (default `claude-opus-5-5`). |
+| `OPENAI_API_KEY` | Turns on the AI features (OpenAI). Without it, tests, internships, projects and resumes use simple offline content marked "practice mode" or "offline", and the coach explains it isn't connected. |
+| `OPENAI_MODEL` | Optional model override (default `gpt-5.4-mini`). |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | Real payments through Razorpay Checkout. Without them, development uses a **demo checkout that charges nothing**, and production disables payments (unless `DEMO_PAYMENTS=1`). |
 | `JWT_SECRET` | Required in production. |
 | `DATA_FILE` | Where to store the JSON database (default `server/data/db.json`). |
@@ -48,7 +52,7 @@ Other scripts: `npm test` (Vitest), `npm run typecheck`, `npm run build` + `npm 
 
 ```
 shared/   role catalog, time estimate, XP/streak/levels, certificates & pricing, reminder copy
-server/   Express API, JSON-file storage, AI (ai.ts), payments (payments.ts), tests/certs/career routes (career.ts)
+server/   Express API, JSON-file storage, AI (ai.ts, coach.ts), payments (payments.ts), tests/certs/career routes (career.ts)
 src/      React app: pages (Landing, Setup, Learn, Friends) and components
 tests/    unit tests for the planning/game logic and API tests
 ```

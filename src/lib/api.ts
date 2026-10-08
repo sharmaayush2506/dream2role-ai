@@ -179,6 +179,34 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return data as T;
 }
 
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+/** Sends the conversation to the AI coach and calls `onText` as the reply streams in. */
+export async function askCoach(messages: ChatMessage[], onText: (soFar: string) => void): Promise<string> {
+  const res = await fetch(`/api/coach?today=${localDay()}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...(token.get() ? { Authorization: `Bearer ${token.get()}` } : {}) },
+    body: JSON.stringify({ messages }),
+  });
+  if (!res.ok || !res.body) {
+    const data = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, data.error ?? "Rolo couldn't answer right now");
+  }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let text = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    text += decoder.decode(value, { stream: true });
+    onText(text);
+  }
+  return text;
+}
+
 export const api = {
   signup: (name: string, email: string, password: string) =>
     request<{ token: string; user: Me }>("POST", "/auth/signup", { name, email, password }),

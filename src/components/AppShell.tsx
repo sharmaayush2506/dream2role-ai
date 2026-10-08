@@ -7,6 +7,7 @@ import { useToast } from "../lib/toasts.tsx";
 import { useReminders } from "../lib/useReminders.ts";
 import SuggestionPopup from "./SuggestionPopup.tsx";
 import CertSidebar from "./CertSidebar.tsx";
+import CoachChat from "./CoachChat.tsx";
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
@@ -118,6 +119,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <div className="content">{children}</div>
       </div>
       <SuggestionPopup />
+      <CoachChat />
       {certsOpen && <CertSidebar onClose={() => setCertsOpen(false)} />}
     </div>
   );

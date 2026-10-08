@@ -5,6 +5,7 @@ import { db, save, type UserRecord } from "./db.ts";
 import { HttpError, requireAuth, sign, todayFor, type AuthedRequest } from "./http.ts";
 import { selfView } from "./views.ts";
 import { registerCareerRoutes } from "./career.ts";
+import { registerCoachRoutes } from "./coach.ts";
 import { findRole, ROLES } from "../shared/catalog.ts";
 import { buildPath, dailyGoalMinutes, estimate, lessonAvailable, nextStep, type Goal, type SkillLevel } from "../shared/plan.ts";
 import { levelInfo, liveStreak, logStudy, weekSummary } from "../shared/game.ts";
@@ -250,6 +251,7 @@ export function createApp() {
   });
 
   registerCareerRoutes(app);
+  registerCoachRoutes(app);
 
   app.use("/api", (_req, _res) => {
     throw new HttpError(404, "Not found");

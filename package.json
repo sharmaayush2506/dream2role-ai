@@ -14,10 +14,10 @@
     "seed": "tsx server/seed.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.132.1",
     "bcryptjs": "^3.0.3",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
+    "openai": "^7.30.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-router-dom": "^7.18.4",
