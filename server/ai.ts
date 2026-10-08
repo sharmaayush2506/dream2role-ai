@@ -261,6 +261,48 @@ function offlineQuiz(spec: QuizSpec): Question[] {
 }
 
 // ---------------------------------------------------------------------------
+// Roadmap insight (shown when a new plan is generated)
+// ---------------------------------------------------------------------------
+
+const InsightSchema = z.object({
+  headline: z.string(),
+  focus: z.string(),
+  tips: z.array(z.string()),
+});
+export type Insight = z.infer<typeof InsightSchema>;
+
+export interface PlanFacts {
+  roleTitle: string;
+  hoursPerWeek: number;
+  weeksNeeded: number;
+  finishDate: string;
+  deadline: string | null;
+  onTrack: boolean | null;
+  skills: { name: string; level: string; hoursLeft: number }[];
+}
+
+/** A short, encouraging read of the learner's new roadmap. Offline returns null (nothing shown). */
+export async function roadmapInsight(f: PlanFacts): Promise<{ data: Insight | null; source: Source; aiError?: string }> {
+  if (!aiEnabled) return { data: null, source: "offline" };
+  return withFallback<Insight | null>(
+    async () => {
+      const out = await generate(
+        InsightSchema,
+        "You are a sharp, encouraging career coach. Given a learner's roadmap, write: a headline (max 12 words), " +
+          "a one-sentence focus for their first two weeks, and exactly 3 short, concrete tips (max 18 words each). " +
+          "Be specific to their skills and schedule. No generic motivation, no emojis.",
+        `Target role: ${f.roleTitle}\nTime: ${f.hoursPerWeek} hours/week, about ${f.weeksNeeded} weeks, finishing around ${f.finishDate}` +
+          (f.deadline ? `\nDeadline: ${f.deadline} (${f.onTrack ? "on track" : "currently behind"})` : "") +
+          `\nSkills in order (current level, hours left):\n` +
+          f.skills.map((s) => `- ${s.name}: ${s.level}, ${s.hoursLeft}h left`).join("\n"),
+      );
+      return { ...out, tips: out.tips.slice(0, 3) };
+    },
+    () => null,
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Internship ideas
 // ---------------------------------------------------------------------------
 

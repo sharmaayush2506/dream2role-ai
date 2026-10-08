@@ -822,3 +822,82 @@ b, strong { font-weight: 600; }
 /* Animated career-network background (behind the roadmap and landing page) */
 .network-bg { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
 @media print { .network-bg { display: none; } }
+
+/* =========================================================================
+   "AI thinking" screen shown while a roadmap is generated
+   ========================================================================= */
+.ai-thinking {
+  position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 24px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px);
+  animation: fadeIn 0.25s ease-out;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.ai-thinking-card {
+  width: min(460px, 100%); background: var(--surface); border: 1px solid var(--border); border-radius: 18px;
+  box-shadow: var(--shadow-lg); padding: 28px 30px 24px; animation: pop 0.3s ease-out;
+}
+.ai-brand { display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 800; font-size: 17px; letter-spacing: -0.01em; margin-bottom: 22px; }
+.ai-spark {
+  display: inline-block; font-size: 18px; background: linear-gradient(135deg, var(--primary), var(--violet));
+  -webkit-background-clip: text; background-clip: text; color: transparent; animation: spark 2.4s ease-in-out infinite;
+}
+@keyframes spark { 0%,100% { transform: rotate(0) scale(1); } 50% { transform: rotate(90deg) scale(1.15); } }
+.ai-stages { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.ai-stage { transition: opacity 0.3s; }
+.ai-stage.pending { opacity: 0.35; }
+.ai-stage-label { font-weight: 600; font-size: 15px; color: var(--text); }
+.ai-stage.done .ai-stage-label { color: var(--text-2); font-weight: 500; }
+.ai-stage-result { min-height: 38px; margin: 4px 0 0 18px; display: flex; align-items: flex-start; gap: 8px; font-size: 14px; }
+.ai-stage.done .ai-stage-result { animation: rise 0.3s ease-out; color: var(--primary-text); font-weight: 600; }
+.ai-stage-result small { display: block; color: var(--text-2); font-weight: 400; font-size: 12px; margin-top: 1px; }
+.ai-check {
+  width: 18px; height: 18px; border-radius: 50%; background: var(--primary); color: var(--on-primary);
+  display: grid; place-items: center; font-size: 11px; font-weight: 800; flex-shrink: 0; margin-top: 1px;
+}
+.ai-dots { display: inline-flex; gap: 4px; padding-top: 7px; }
+.ai-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--primary); animation: blink 1s infinite; }
+.ai-dots i:nth-child(2) { animation-delay: 0.15s; }
+.ai-dots i:nth-child(3) { animation-delay: 0.3s; }
+.ai-orb {
+  width: 14px; height: 14px; margin-top: 3px; border-radius: 50%; border: 2px solid var(--primary);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 45%, transparent); animation: orb 1.2s ease-out infinite;
+  background: radial-gradient(circle, var(--primary) 0 3px, transparent 4px);
+}
+@keyframes orb { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 45%, transparent); } 100% { box-shadow: 0 0 0 12px transparent; } }
+.ai-ready {
+  margin-top: 22px; text-align: center; font-weight: 800; letter-spacing: 0.12em; font-size: 14px; color: var(--primary-text);
+  opacity: 0; transform: translateY(6px) scale(0.98); transition: opacity 0.35s, transform 0.35s;
+}
+.ai-ready.show { opacity: 1; transform: none; }
+
+/* AI insight on the plan screen */
+.insight { text-align: left; padding: 18px 20px; margin: 0 0 16px; border-color: color-mix(in srgb, var(--violet) 35%, var(--border)); animation: rise 0.4s ease-out both; }
+.insight-head { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--violet-text); margin-bottom: 6px; }
+.insight h3 { font-size: 17px; font-weight: 800; margin-bottom: 4px; }
+.insight-focus { color: var(--text-2); font-size: 14px; }
+.insight ul { margin: 6px 0 0; padding-left: 18px; font-size: 14px; color: var(--text-2); }
+.insight li { margin-bottom: 3px; }
+
+/* Roadmap graph on the plan screen: levels connected by a line, drawn in one after another */
+.roadmap-graph { list-style: none; margin: 8px auto 0; padding: 0; max-width: 520px; text-align: left; }
+.rg-item { position: relative; display: flex; gap: 14px; padding-bottom: 18px; opacity: 0; animation: rgIn 0.45s ease-out forwards; animation-delay: calc(var(--i) * 0.14s + 0.1s); }
+.rg-item::before {
+  content: ""; position: absolute; left: 21px; top: 44px; bottom: 0; width: 2px; background: var(--border-strong);
+  transform-origin: top; transform: scaleY(0); animation: rgLine 0.35s ease-out forwards; animation-delay: calc(var(--i) * 0.14s + 0.3s);
+}
+.rg-item:last-child::before { display: none; }
+@keyframes rgIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes rgLine { to { transform: scaleY(1); } }
+.rg-node {
+  width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; flex-shrink: 0;
+  background: var(--surface); border: 2px solid var(--primary); box-shadow: 0 0 0 4px var(--primary-soft); position: relative; z-index: 1;
+}
+.rg-finish .rg-node { border-color: var(--gold); box-shadow: 0 0 0 4px var(--gold-soft); }
+.rg-body { display: flex; flex-direction: column; padding-top: 2px; }
+.rg-body small { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-3); }
+.rg-body strong { font-size: 15px; font-weight: 700; }
+.rg-meta { font-size: 13px; color: var(--text-2); }
+
+/* Learn page: build the path in after a roadmap was just generated */
+.path-reveal .unit { opacity: 0; animation: rgIn 0.5s ease-out forwards; animation-delay: calc(var(--i) * 0.18s); }
+.path-reveal .finish-line { opacity: 0; animation: rgIn 0.5s ease-out 0.9s forwards; }

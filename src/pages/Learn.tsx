@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { levelInfo, liveStreak, localDay, weekSummary, type GameEvent } from "../../shared/game.ts";
 import { buildPath, dailyGoalMinutes, estimate, lessonAvailable, lessonDone, nextStep, roleForGoal, type Lesson, type NextStep, type Unit } from "../../shared/plan.ts";
 import { careerReadiness } from "../../shared/certs.ts";
@@ -21,6 +21,8 @@ export default function Learn() {
   const { user, setUser } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
+  // Arriving straight from "Generate my roadmap": build the path in, level by level.
+  const fresh = !!(useLocation().state as { fresh?: boolean } | null)?.fresh;
   const me = user!;
   const goal = me.goal!;
   const today = localDay();
@@ -55,10 +57,11 @@ export default function Learn() {
   return (
     <div className="learn">
       <NetworkBackground />
-      <div className="path-col">
+      <div className={`path-col ${fresh ? "path-reveal" : ""}`}>
         {path.map((unit, ui) => (
           <UnitSection
             key={unit.skill.id}
+            style={{ "--i": ui } as React.CSSProperties}
             unit={unit}
             index={ui}
             color={UNIT_COLORS[ui % UNIT_COLORS.length]}
@@ -195,7 +198,9 @@ function UnitSection({
   passed,
   onOpen,
   onTest,
+  style,
 }: {
+  style?: React.CSSProperties;
   unit: Unit;
   index: number;
   color: string;
@@ -210,7 +215,7 @@ function UnitSection({
   const testState = passed ? "done" : testReady ? "current" : "locked";
 
   return (
-    <section className="unit">
+    <section className="unit" style={style}>
       <div className={`unit-banner unit-${color}`}>
         <div>
           <small>LEVEL {index + 1}</small>

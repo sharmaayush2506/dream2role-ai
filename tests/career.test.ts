@@ -141,5 +141,9 @@ describe("levels, tests, certificates and career", () => {
     expect(resume.status).toBe(200);
     expect(resume.body.data.resume.certifications).toContain("Python Certified");
     expect((await call("GET", "/career")).body.cache.resume).toBeTruthy();
+
+    // Without an AI key the roadmap insight is simply absent (the plan screen shows nothing extra).
+    const insight = await call("POST", "/plan/insight", {});
+    expect(insight.body).toEqual({ data: null, source: "offline" });
   });
 });

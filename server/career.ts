@@ -4,9 +4,9 @@ import type { Express, NextFunction, Request, Response } from "express";
 import { db, save, type PendingTest, type UserRecord } from "./db.ts";
 import { HttpError, limiter, rateLimit, requireAuth, todayFor, userOf } from "./http.ts";
 import { selfView } from "./views.ts";
-import { aiEnabled, buildResume, generateQuiz, ResumeInputSchema, suggestInternships, suggestProjects, type LearnerProfile } from "./ai.ts";
+import { aiEnabled, buildResume, generateQuiz, ResumeInputSchema, roadmapInsight, suggestInternships, suggestProjects, type LearnerProfile } from "./ai.ts";
 import { confirmPayment, createOrder } from "./payments.ts";
-import { buildPath, lessonDone, roleForGoal } from "../shared/plan.ts";
+import { buildPath, estimate, LEVEL_LABELS, lessonDone, roleForGoal } from "../shared/plan.ts";
 import { awardXp, LEVEL_TEST_XP, type GameEvent } from "../shared/game.ts";
 import { careerReadiness, CERT_TEST, certEligible, certsForGoal, LEVEL_TEST, type Pack } from "../shared/certs.ts";
 
@@ -221,6 +221,28 @@ export function registerCareerRoutes(app: Express) {
     res.json({ readiness: careerReadiness(goalOf(user), user.progress.passedTests), cache: user.careerCache });
   });
 
+
+  // A short AI read of the learner's (just saved) roadmap, shown on the plan screen.
+  app.post("/api/plan/insight", requireAuth, aiLimit, async (req, res) => {
+    const user = userOf(req);
+    const goal = goalOf(user);
+    const est = estimate(goal, user.progress.lessonMinutes, todayFor(req));
+    const lm = user.progress.lessonMinutes;
+    const out = await roadmapInsight({
+      roleTitle: roleForGoal(goal).title,
+      hoursPerWeek: goal.hoursPerWeek,
+      weeksNeeded: est.weeksNeeded,
+      finishDate: est.finishDate,
+      deadline: est.deadline,
+      onTrack: est.onTrack,
+      skills: buildPath(goal).map((u) => ({
+        name: u.skill.name,
+        level: LEVEL_LABELS[goal.levels[u.skill.id] ?? 0].label,
+        hoursLeft: Math.round(u.lessons.reduce((s, l) => s + (l.placedOut ? 0 : Math.max(0, l.minutes - (lm[l.id] ?? 0))), 0) / 60),
+      })),
+    });
+    res.json(out);
+  });
 
   app.post("/api/career/internships", requireAuth, aiLimit, async (req, res) => {
     const user = userOf(req);

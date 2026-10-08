@@ -245,6 +245,8 @@ export const api = {
         resume?: AiResult<{ resume: Resume; input: ResumeInput }>;
       };
     }>("GET", "/career"),
+  planInsight: () =>
+    request<AiResult<{ headline: string; focus: string; tips: string[] } | null>>("POST", "/plan/insight", {}),
   internships: () => request<AiResult<{ internships: Internship[]; tips: string[] }>>("POST", "/career/internships", {}),
   projects: (interests: string) => request<AiResult<{ projects: Project[] }>>("POST", "/career/projects", { interests }),
   resume: (input: ResumeInput) => request<AiResult<{ resume: Resume; input: ResumeInput }>>("POST", "/career/resume", { input }),

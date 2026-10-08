@@ -1,13 +1,14 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ROLES, findRole } from "../../shared/catalog.ts";
-import { LEVEL_LABELS, addDays, daysBetween, estimate, type Goal, type SkillLevel } from "../../shared/plan.ts";
+import { LEVEL_LABELS, addDays, buildPath, daysBetween, estimate, type Goal, type SkillLevel } from "../../shared/plan.ts";
 import { localDay } from "../../shared/game.ts";
 import { api } from "../lib/api.ts";
 import { useAuth } from "../lib/auth.tsx";
 import { formatDate, plural } from "../lib/format.ts";
 import { ThemeMenu } from "../lib/theme.tsx";
 import { RocketMark } from "../components/Logo.tsx";
+import AiThinking, { type Stage } from "../components/AiThinking.tsx";
 
 const STEPS = ["Dream job", "Current skills", "Time", "Deadline", "Your plan"] as const;
 
@@ -32,6 +33,10 @@ export default function Setup() {
   const [deadline, setDeadline] = useState<string | null>(existing?.deadline ?? null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  // "Generate my roadmap": the running save + AI insight, while the thinking screen shows.
+  const [generating, setGenerating] = useState<{ work: Promise<unknown>; stages: Stage[] } | null>(null);
+  const [savedGoal, setSavedGoal] = useState("");
+  const [insight, setInsight] = useState<{ headline: string; focus: string; tips: string[] } | null>(null);
 
   const role = roleId ? findRole(roleId, customTitle) : null;
   const goal: Goal | null = role
@@ -47,14 +52,50 @@ export default function Setup() {
     step === 2 ||
     (step === 3 && (!deadline || deadline > today));
 
-  async function finish() {
+  const goalKey = goal ? JSON.stringify({ ...goal, createdAt: "" }) : "";
+
+  /** Saves the plan and asks the AI for an insight, behind the "AI thinking" screen. */
+  function generate() {
+    if (!goal || !role || !est) return;
+    setError("");
+    setInsight(null);
+    const path = buildPath(goal);
+    const lessons = path.flatMap((u) => u.lessons);
+    const skipped = lessons.filter((l) => l.placedOut).length;
+    const stages: Stage[] = [
+      { label: "Analyzing your target role...", done: "Role requirements", detail: `${role.skills.length} core skills for ${role.title}` },
+      {
+        label: "Mapping skill dependencies...",
+        done: "Skill graph",
+        detail: `${lessons.length} lessons in ${path.length} levels${skipped ? ` · ${skipped} you can skip` : ""}`,
+      },
+      {
+        label: "Finding realistic milestones...",
+        done: "Career paths",
+        detail: `${plural(est.weeksNeeded, "week")} at ${hoursPerWeek} h/week · finish ${formatDate(est.finishDate)}`,
+      },
+      { label: "Building your roadmap...", done: "Roadmap built" },
+    ];
+    const key = goalKey;
+    const work = (async () => {
+      const { user } = await api.saveGoal(goal);
+      setSavedGoal(key);
+      // The AI insight is a bonus: never block the roadmap on it.
+      const ai = await api.planInsight().catch(() => null);
+      if (ai?.source === "ai" && ai.data) setInsight(ai.data);
+      setUser(user);
+    })();
+    setGenerating({ work, stages });
+  }
+
+  async function startLearning() {
     if (!goal) return;
     setSaving(true);
     setError("");
     try {
-      const { user } = await api.saveGoal(goal);
-      setUser(user);
-      navigate("/learn");
+      // Save again only if the plan was tweaked on this screen (e.g. "Use 11 h / week").
+      if (goalKey !== savedGoal) setUser((await api.saveGoal(goal)).user);
+      navigate("/learn", { state: { fresh: true } });
     } catch (e) {
       setError((e as Error).message);
       setSaving(false);
@@ -197,6 +238,7 @@ export default function Setup() {
               <input id="deadline" className="input" type="date" min={addDays(today, 7)} value={deadline ?? ""} onChange={(e) => setDeadline(e.target.value || null)} />
             </div>
             {est && <LiveEstimate weeks={est.weeksNeeded} hours={est.remainingHours} />}
+            {error && <p className="form-error">{error}</p>}
           </section>
         )}
 
@@ -228,31 +270,86 @@ export default function Setup() {
                 )}
               </div>
             )}
-            <div className="unit-preview">
-              {role.skills.map((s) => (
-                <div key={s.id} className="unit-preview-item">
-                  <span>{s.icon}</span> {s.name}
-                  <em>{LEVEL_LABELS[levels[s.id] ?? 0].emoji}</em>
+            {insight && (
+              <div className="insight card">
+                <div className="insight-head">
+                  <span className="ai-spark">✦</span> AI insight
                 </div>
-              ))}
-            </div>
+                <h3>{insight.headline}</h3>
+                <p className="insight-focus">{insight.focus}</p>
+                <ul>{insight.tips.map((t) => <li key={t}>{t}</li>)}</ul>
+              </div>
+            )}
+            <RoadmapGraph goal={goal!} finish={formatDate(est.finishDate)} />
             {error && <p className="form-error">{error}</p>}
           </section>
         )}
       </div>
 
       <footer className="setup-footer">
-        {step < 4 ? (
+        {step < 3 ? (
           <button className="btn btn-green btn-xl" disabled={!canNext} onClick={() => setStep(step + 1)}>
             Continue
           </button>
+        ) : step === 3 ? (
+          <button className="btn btn-green btn-xl" disabled={!canNext || !!generating} onClick={generate}>
+            ✦ Generate my roadmap
+          </button>
         ) : (
-          <button className="btn btn-green btn-xl" disabled={saving} onClick={finish}>
-            {saving ? "Building your path…" : existing ? "Save my plan" : "Start my journey"}
+          <button className="btn btn-green btn-xl" disabled={saving} onClick={startLearning}>
+            {saving ? "Saving…" : "Start learning →"}
           </button>
         )}
       </footer>
+
+      {generating && (
+        <AiThinking
+          stages={generating.stages}
+          work={generating.work}
+          onDone={() => {
+            setGenerating(null);
+            setStep(4);
+          }}
+          onError={(msg) => {
+            setGenerating(null);
+            setError(msg);
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+/** The roadmap as a connected path of levels; each level draws in after the previous one. */
+function RoadmapGraph({ goal, finish }: { goal: Goal; finish: string }) {
+  const path = buildPath(goal);
+  return (
+    <ol className="roadmap-graph" aria-label="Your roadmap">
+      {path.map((u, i) => {
+        const left = u.lessons.reduce((s, l) => s + (l.placedOut ? 0 : l.minutes), 0);
+        const level = LEVEL_LABELS[goal.levels[u.skill.id] ?? 0];
+        return (
+          <li key={u.skill.id} className="rg-item" style={{ "--i": i } as React.CSSProperties}>
+            <span className="rg-node">{u.skill.icon}</span>
+            <div className="rg-body">
+              <small>Level {i + 1}</small>
+              <strong>{u.skill.name}</strong>
+              <span className="rg-meta">
+                {u.lessons.length} lessons · {Math.round(left / 60)}h · you're {level.label.toLowerCase()} {level.emoji}
+              </span>
+            </div>
+          </li>
+        );
+      })}
+      <li className="rg-item rg-finish" style={{ "--i": path.length } as React.CSSProperties}>
+        <span className="rg-node">🏆</span>
+        <div className="rg-body">
+          <small>Goal</small>
+          <strong>{goal.roleTitle}</strong>
+          <span className="rg-meta">Estimated finish {finish}</span>
+        </div>
+      </li>
+    </ol>
   );
 }
 

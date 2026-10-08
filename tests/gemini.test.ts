@@ -74,6 +74,9 @@ beforeAll(async () => {
         const wantsJson = body.generationConfig?.responseMimeType === "application/json";
         res.writeHead(200, { "Content-Type": "application/json" });
         const props = Object.keys(body.generationConfig?.responseJsonSchema?.properties ?? {});
+        if (props.includes("focus")) {
+          return res.end(JSON.stringify(candidate(JSON.stringify({ headline: "Strong start", focus: "Finish HTML first.", tips: ["a", "b", "c", "d"] }))));
+        }
         if (props.includes("headline")) {
           if (failResume) return res.end(JSON.stringify(candidate("not json")));
           return res.end(JSON.stringify(candidate(JSON.stringify(resume))));
@@ -159,5 +162,12 @@ describe("Gemini integration", () => {
     expect(r.source).toBe("offline");
     expect(r.aiError).toBeTruthy();
     expect(r.data.resume.tips).toEqual([]);
+  });
+
+  it("writes a roadmap insight with AI", async () => {
+    const r = await (await call("POST", "/plan/insight", {})).json();
+    expect(r.source).toBe("ai");
+    expect(r.data.headline).toBe("Strong start");
+    expect(r.data.tips).toHaveLength(3); // trimmed to three
   });
 });
