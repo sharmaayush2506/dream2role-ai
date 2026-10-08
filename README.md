@@ -17,6 +17,23 @@ A Duolingo-style planner that turns **Dream Job + Current Skills + Time + Deadli
 - **Friends Zone.** Send, accept and decline friend requests. A weekly leaderboard shows each friend's minutes vs. their weekly goal, a Mon–Sun activity chart, their streak and level. You can search for people by name.
 - **Friend discovery.** "People you may know" suggestions, ranked by same dream job, shared skills and mutual friends. They also appear as a pop-up on the Learn page, at most once a day.
 
+- **Compulsory level tests.** Every level ends with an MCQ test (8 questions, pass at 70%). The next level stays locked until you pass. Each answer is locked in on the server before the correct answer is shown, and a retake gets fresh questions.
+- **Certifications sidebar** (🎓 in the nav). One certificate per level, plus a "Job-Ready <role>" capstone. Each one unlocks when you pass its level test. Pricing is **₹299 per certificate** or **₹699 for 3**. To get certified you pass an AI-generated exam (15 questions, 75%). Certificates have a public, printable verification page at `/certificate/<id>`.
+- **Career hub** (💼 in the nav):
+  - **Internship matches** unlock after passing half the level tests. The AI suggests internship types you're eligible for, why you fit, skills to highlight, gaps to close, and search links.
+  - **AI project ideas** unlock after the first level test. Each one includes the full tech stack, features, milestones, ways to use AI to build it, and a portfolio tip.
+  - **AI resume builder.** It writes a one-page resume in the format your target internship's field expects and pulls in your skills and certificates. You can download it as a PDF through the print dialog.
+
+## Configuration
+
+| Variable | What it does |
+| --- | --- |
+| `ANTHROPIC_API_KEY` | Turns on the AI features (Claude). Without it, tests, internships, projects and resumes use simple offline content marked "practice mode" or "offline". |
+| `ANTHROPIC_MODEL` | Optional model override (default `claude-opus-5-5`). |
+| `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | Real payments through Razorpay Checkout. Without them, development uses a **demo checkout that charges nothing**, and production disables payments (unless `DEMO_PAYMENTS=1`). |
+| `JWT_SECRET` | Required in production. |
+| `DATA_FILE` | Where to store the JSON database (default `server/data/db.json`). |
+
 ## Run it
 
 ```bash
@@ -30,8 +47,8 @@ Other scripts: `npm test` (Vitest), `npm run typecheck`, `npm run build` + `npm 
 ## Structure
 
 ```
-shared/   role catalog, time estimate, XP/streak/levels, reminder copy (used by server and client)
-server/   Express API, JSON-file storage (server/data/db.json), seed script
+shared/   role catalog, time estimate, XP/streak/levels, certificates & pricing, reminder copy
+server/   Express API, JSON-file storage, AI (ai.ts), payments (payments.ts), tests/certs/career routes (career.ts)
 src/      React app: pages (Landing, Setup, Learn, Friends) and components
 tests/    unit tests for the planning/game logic and API tests
 ```
@@ -39,5 +56,6 @@ tests/    unit tests for the planning/game logic and API tests
 ## Notes / next steps
 
 - Storage is a single JSON file, which is fine for a prototype. Swap `server/db.ts` for a real database before going live.
+- The Razorpay integration follows Razorpay's standard order and signature-verification flow but hasn't been tested against live keys yet. Test it in Razorpay's test mode first, and add a webhook (`payment.captured`) so a payment still counts if the browser closes mid-checkout.
 - Browser reminders only fire while the app is open in a tab. For reminders when it's closed, add web push (service worker + push server) or email.
 - The skill hours in `shared/catalog.ts` are rough estimates. Tune them, or add more roles.

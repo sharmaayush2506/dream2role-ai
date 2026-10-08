@@ -1,63 +1,15 @@
 import crypto from "node:crypto";
 import express, { type NextFunction, type Request, type Response } from "express";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import { db, save, type UserRecord } from "./db.ts";
+import { HttpError, requireAuth, sign, todayFor, type AuthedRequest } from "./http.ts";
+import { selfView } from "./views.ts";
+import { registerCareerRoutes } from "./career.ts";
 import { findRole, ROLES } from "../shared/catalog.ts";
-import { buildPath, dailyGoalMinutes, daysBetween, estimate, formatDay, type Goal, type SkillLevel } from "../shared/plan.ts";
+import { buildPath, dailyGoalMinutes, estimate, lessonAvailable, nextStep, type Goal, type SkillLevel } from "../shared/plan.ts";
 import { levelInfo, liveStreak, logStudy, weekSummary } from "../shared/game.ts";
 
-const JWT_SECRET = process.env.JWT_SECRET ?? (process.env.NODE_ENV === "production" ? "" : "dev-only-secret-change-me");
-if (!JWT_SECRET) throw new Error("JWT_SECRET must be set in production");
-
 const AVATARS = ["🦊", "🐼", "🐯", "🐸", "🐵", "🦁", "🐨", "🐙", "🦄", "🐧", "🐢", "🦉"];
-
-interface AuthedRequest extends Request {
-  user: UserRecord;
-}
-
-class HttpError extends Error {
-  constructor(public status: number, message: string) {
-    super(message);
-  }
-}
-
-function sign(user: UserRecord) {
-  return jwt.sign({ sub: user.id }, JWT_SECRET, { expiresIn: "7d" });
-}
-
-function requireAuth(req: Request, _res: Response, next: NextFunction) {
-  const token = req.headers.authorization?.replace(/^Bearer /, "");
-  if (!token) throw new HttpError(401, "Please log in");
-  try {
-    const { sub } = jwt.verify(token, JWT_SECRET) as { sub: string };
-    const user = db.byId(sub);
-    if (!user) throw new Error();
-    (req as AuthedRequest).user = user;
-    next();
-  } catch {
-    throw new HttpError(401, "Your session expired. Please log in again.");
-  }
-}
-
-/** Use the client's local date (so streaks follow their timezone), as long as it's plausible. */
-function todayFor(req: Request): string {
-  const serverToday = formatDay(new Date());
-  const t = String(req.query.today ?? req.body?.today ?? "");
-  return /^\d{4}-\d{2}-\d{2}$/.test(t) && Math.abs(daysBetween(serverToday, t)) <= 1 ? t : serverToday;
-}
-
-function selfView(u: UserRecord, today: string) {
-  return {
-    id: u.id,
-    name: u.name,
-    email: u.email,
-    avatar: u.avatar,
-    goal: u.goal,
-    progress: { ...u.progress, streak: liveStreak(u.progress, today) },
-    incomingCount: u.incoming.length,
-  };
-}
 
 /** What friends get to see: weekly progress, streak and level. */
 function friendCard(u: UserRecord, today: string) {
@@ -152,7 +104,11 @@ export function createApp() {
     const user = (req as AuthedRequest).user;
     const goal = parseGoal(req.body);
     // Changing to a different dream job starts a fresh path; XP and streak are kept.
-    if (user.goal && user.goal.roleId !== goal.roleId) user.progress.lessonMinutes = {};
+    if (user.goal && user.goal.roleId !== goal.roleId) {
+      user.progress.lessonMinutes = {};
+      user.progress.passedTests = {};
+      user.tests = {};
+    }
     user.goal = goal;
     save();
     res.json({ user: selfView(user, todayFor(req)) });
@@ -166,6 +122,9 @@ export function createApp() {
     const lessonId = String(req.body?.lessonId ?? "");
     const lesson = buildPath(user.goal).flatMap((u) => u.lessons).find((l) => l.id === lessonId);
     if (!lesson) throw new HttpError(404, "Lesson not found");
+    const step = nextStep(buildPath(user.goal), user.progress.lessonMinutes, user.progress.passedTests);
+    if (!lessonAvailable(lesson, step, user.progress.lessonMinutes))
+      throw new HttpError(403, step?.kind === "test" ? "Pass the level test to unlock the next level" : "This lesson is still locked");
 
     const today = todayFor(req);
     const { progress, events } = logStudy(user.goal, user.progress, lessonId, minutes, today, dailyGoalMinutes(user.goal));
@@ -289,6 +248,8 @@ export function createApp() {
     save();
     res.json({ ok: true });
   });
+
+  registerCareerRoutes(app);
 
   app.use("/api", (_req, _res) => {
     throw new HttpError(404, "Not found");

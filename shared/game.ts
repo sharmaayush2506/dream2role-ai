@@ -22,15 +22,23 @@ export interface Progress {
   lastActiveDate: string | null;
   lessonMinutes: Record<string, number>;
   activity: DayActivity[]; // one entry per active day, newest last
+  passedTests: Record<string, TestPass>; // level tests passed, keyed by skill id
+}
+
+export interface TestPass {
+  score: number;
+  total: number;
+  passedAt: string;
 }
 
 export function emptyProgress(): Progress {
-  return { xp: 0, streak: 0, longestStreak: 0, lastActiveDate: null, lessonMinutes: {}, activity: [] };
+  return { xp: 0, streak: 0, longestStreak: 0, lastActiveDate: null, lessonMinutes: {}, activity: [], passedTests: {} };
 }
 
 export const XP_PER_MINUTE = 1;
 export const LESSON_BONUS_XP = 50;
 export const UNIT_BONUS_XP = 200;
+export const LEVEL_TEST_XP = 100;
 
 const LEVEL_TITLES = ["Dreamer", "Explorer", "Apprentice", "Builder", "Achiever", "Pro", "Expert", "Master", "Legend"];
 
@@ -69,7 +77,23 @@ export type GameEvent =
   | { type: "streak"; days: number }
   | { type: "level-up"; level: number; title: string }
   | { type: "daily-goal" }
-  | { type: "path-complete" };
+  | { type: "path-complete" }
+  | { type: "test-passed"; name: string; score: number; total: number }
+  | { type: "certificate"; title: string };
+
+/** Add bonus XP (e.g. for passing a test) to today's activity without touching streaks or lessons. */
+export function awardXp(prev: Progress, xp: number, today: string): { progress: Progress; events: GameEvent[] } {
+  const levelBefore = levelInfo(prev.xp).level;
+  const activity = prev.activity.map((a) => ({ ...a }));
+  const day = activity.find((a) => a.date === today);
+  if (day) day.xp += xp;
+  else activity.push({ date: today, minutes: 0, xp });
+  const progress = { ...prev, xp: prev.xp + xp, activity };
+  const events: GameEvent[] = [{ type: "xp", amount: xp }];
+  const after = levelInfo(progress.xp);
+  if (after.level > levelBefore) events.push({ type: "level-up", level: after.level, title: after.title });
+  return { progress, events };
+}
 
 /** Log study time on a lesson. Pure: returns the new progress and what happened. */
 export function logStudy(

@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { levelInfo, liveStreak, localDay, weekSummary, type GameEvent } from "../../shared/game.ts";
-import { buildPath, currentLessonId, dailyGoalMinutes, estimate, lessonDone, roleForGoal, type Lesson, type Unit } from "../../shared/plan.ts";
+import { buildPath, dailyGoalMinutes, estimate, lessonAvailable, lessonDone, nextStep, roleForGoal, type Lesson, type NextStep, type Unit } from "../../shared/plan.ts";
+import { careerReadiness } from "../../shared/certs.ts";
 import { api } from "../lib/api.ts";
 import { useAuth } from "../lib/auth.tsx";
 import { useToast } from "../lib/toasts.tsx";
@@ -9,6 +10,7 @@ import { formatDate, minutesLabel, plural } from "../lib/format.ts";
 import LessonModal from "../components/LessonModal.tsx";
 import Celebration from "../components/Celebration.tsx";
 import WeekBars from "../components/WeekBars.tsx";
+import TestRunner from "../components/TestRunner.tsx";
 
 const UNIT_COLORS = ["green", "purple", "blue", "orange", "pink", "teal"];
 // Zig-zag offsets (in px) for lesson nodes, Duolingo style.
@@ -23,7 +25,9 @@ export default function Learn() {
   const today = localDay();
   const path = useMemo(() => buildPath(goal), [goal]);
   const lm = me.progress.lessonMinutes;
-  const current = currentLessonId(path, lm);
+  const passed = me.progress.passedTests;
+  const step = nextStep(path, lm, passed);
+  const readiness = careerReadiness(goal, passed);
   const est = estimate(goal, lm, today);
   const lvl = levelInfo(me.progress.xp);
   const dailyGoal = dailyGoalMinutes(goal);
@@ -33,6 +37,7 @@ export default function Learn() {
 
   const [open, setOpen] = useState<Lesson | null>(null);
   const [celebrate, setCelebrate] = useState<GameEvent[]>([]);
+  const [testFor, setTestFor] = useState<Unit | null>(null);
 
   async function study(lesson: Lesson, minutes: number) {
     const { user, events } = await api.study(lesson.id, minutes);
@@ -56,8 +61,10 @@ export default function Learn() {
             index={ui}
             color={UNIT_COLORS[ui % UNIT_COLORS.length]}
             lessonMinutes={lm}
-            current={current}
+            step={step}
+            passed={!!passed[unit.skill.id]}
             onOpen={setOpen}
+            onTest={() => setTestFor(unit)}
           />
         ))}
         <div className="finish-line">
@@ -114,6 +121,19 @@ export default function Learn() {
         </div>
 
         <div className="card panel">
+          <div className="panel-head">
+            <h3>💼 Career unlocks</h3>
+            <span className="muted">{readiness.passed}/{readiness.total} tests</span>
+          </div>
+          <ul className="unlock-list">
+            <li className={readiness.projectsUnlocked ? "on" : ""}>{readiness.projectsUnlocked ? "✅" : "🔒"} AI project ideas <small>(pass 1 level test)</small></li>
+            <li className={readiness.internshipsUnlocked ? "on" : ""}>{readiness.internshipsUnlocked ? "✅" : "🔒"} Internship matches <small>(pass {readiness.internshipsAt} level tests)</small></li>
+            <li className="on">✅ AI resume builder</li>
+          </ul>
+          <button className="btn btn-outline btn-sm btn-block" onClick={() => navigate("/career")}>Open career hub</button>
+        </div>
+
+        <div className="card panel">
           <h3>🧩 Skills</h3>
           {path.map((u, i) => {
             const total = u.lessons.reduce((s, l) => s + l.minutes, 0);
@@ -145,6 +165,21 @@ export default function Learn() {
         />
       )}
       {celebrate.length > 0 && <Celebration events={celebrate} onDone={() => setCelebrate([])} />}
+      {testFor && (
+        <TestRunner
+          kind="level"
+          refId={testFor.skill.id}
+          intro={`${testFor.skill.icon} ${testFor.skill.name}: score at least 70% to unlock the next level.`}
+          onClose={() => setTestFor(null)}
+          onFinished={(r) => {
+            setUser(r.user);
+            for (const e of r.events) {
+              if (e.type === "level-up") toast({ emoji: "⭐", title: `Level ${e.level}!`, body: `You're now a ${e.title}.`, tone: "gold" });
+              if (e.type === "test-passed") toast({ emoji: "🎓", title: "A new certificate is available", body: "Open Certificates to get certified.", tone: "purple" });
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -154,22 +189,23 @@ function UnitSection({
   index,
   color,
   lessonMinutes,
-  current,
+  step,
+  passed,
   onOpen,
+  onTest,
 }: {
   unit: Unit;
   index: number;
   color: string;
   lessonMinutes: Record<string, number>;
-  current: string | null;
+  step: NextStep;
+  passed: boolean;
   onOpen: (l: Lesson) => void;
+  onTest: () => void;
 }) {
-  const unitDone = unit.lessons.every((l) => lessonDone(l, lessonMinutes));
-  // A lesson is locked if the current lesson comes before it.
-  const locked = (l: Lesson) => {
-    if (lessonDone(l, lessonMinutes) || current === null) return false;
-    return l.id !== current;
-  };
+  const current = step?.kind === "lesson" ? step.id : null;
+  const testReady = step?.kind === "test" && step.skillId === unit.skill.id;
+  const testState = passed ? "done" : testReady ? "current" : "locked";
 
   return (
     <section className="unit">
@@ -179,14 +215,14 @@ function UnitSection({
           <h2>{unit.skill.icon} {unit.skill.name}</h2>
           <p>{unit.lessons.length} lessons · {unit.skill.hours}h total</p>
         </div>
-        {unitDone && <span className="unit-crown" title="Level complete">👑</span>}
+        {passed && <span className="unit-crown" title="Level test passed">👑</span>}
       </div>
       <div className="nodes">
         {unit.lessons.map((l, i) => {
           const done = lessonDone(l, lessonMinutes);
           const isCurrent = l.id === current;
           const pct = l.placedOut ? 100 : Math.min(100, ((lessonMinutes[l.id] ?? 0) / l.minutes) * 100);
-          const state = done ? "done" : isCurrent ? "current" : locked(l) ? "locked" : "open";
+          const state = done ? "done" : isCurrent ? "current" : lessonAvailable(l, step, lessonMinutes) ? "open" : "locked";
           return (
             <div key={l.id} className={`node-wrap ${isCurrent ? "has-bubble" : ""}`} style={{ transform: `translateX(${OFFSETS[(i + index * 2) % OFFSETS.length]}px)` }}>
               {isCurrent && <div className="start-bubble">{pct > 0 ? "CONTINUE" : "START"}</div>}
@@ -203,6 +239,19 @@ function UnitSection({
             </div>
           );
         })}
+        <div className={`node-wrap ${testReady ? "has-bubble" : ""}`}>
+          {testReady && <div className="start-bubble test-bubble">LEVEL TEST</div>}
+          <button
+            className={`node node-test node-${testState === "done" ? "done" : "test"} ${testState === "current" ? "node-current" : ""} ${testState === "locked" ? "node-locked" : ""}`}
+            style={{ "--pct": testState === "done" ? "100%" : "0%" } as React.CSSProperties}
+            disabled={testState !== "current"}
+            onClick={onTest}
+            aria-label={`${unit.skill.name} level test${passed ? " (passed)" : testState === "locked" ? " (locked)" : ""}`}
+          >
+            <span className="node-inner">{passed ? "👑" : testState === "locked" ? "🔒" : "🏆"}</span>
+          </button>
+          <span className="node-label">{passed ? "Level test passed" : "Level test (compulsory)"}</span>
+        </div>
       </div>
     </section>
   );

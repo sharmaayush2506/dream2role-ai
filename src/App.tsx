@@ -6,6 +6,8 @@ import Setup from "./pages/Setup.tsx";
 import Learn from "./pages/Learn.tsx";
 import Friends from "./pages/Friends.tsx";
 import AppShell from "./components/AppShell.tsx";
+import Career from "./pages/Career.tsx";
+import CertificatePage from "./pages/CertificatePage.tsx";
 
 function Protected({ children, needsGoal = true }: { children: ReactNode; needsGoal?: boolean }) {
   const { user, loading } = useAuth();
@@ -25,6 +27,8 @@ export default function App() {
       <Route path="/setup" element={<Protected needsGoal={false}><Setup /></Protected>} />
       <Route path="/learn" element={<Protected><AppShell><Learn /></AppShell></Protected>} />
       <Route path="/friends" element={<Protected><AppShell><Friends /></AppShell></Protected>} />
+      <Route path="/career" element={<Protected><AppShell><Career /></AppShell></Protected>} />
+      <Route path="/certificate/:id" element={<CertificatePage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

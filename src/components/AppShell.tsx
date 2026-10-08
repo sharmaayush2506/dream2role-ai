@@ -6,6 +6,7 @@ import { useAuth } from "../lib/auth.tsx";
 import { useToast } from "../lib/toasts.tsx";
 import { useReminders } from "../lib/useReminders.ts";
 import SuggestionPopup from "./SuggestionPopup.tsx";
+import CertSidebar from "./CertSidebar.tsx";
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
@@ -17,6 +18,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const streak = liveStreak(me.progress, localDay());
   const { reminders, prefs, enable, disable, setTime } = useReminders(me);
   const [bellOpen, setBellOpen] = useState(false);
+  const [certsOpen, setCertsOpen] = useState(false);
   const shown = useRef(false);
 
   // Greet with the most relevant nudge once per browser session.
@@ -40,17 +42,24 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <div className="logo">
           <span className="logo-mark">🚀</span> <span className="logo-text">dream2role</span>
         </div>
-        <NavLink to="/learn" className="nav-item">
+        <NavLink to="/learn" className="nav-item" aria-label="Learn">
           <span>🏠</span> <span className="nav-label">Learn</span>
         </NavLink>
-        <NavLink to="/friends" className="nav-item">
+        <NavLink to="/friends" className="nav-item" aria-label="Friends">
           <span>👯</span> <span className="nav-label">Friends</span>
           {me.incomingCount > 0 && <span className="nav-badge">{me.incomingCount}</span>}
         </NavLink>
-        <button className="nav-item" onClick={() => navigate("/setup")}>
+        <NavLink to="/career" className="nav-item" aria-label="Career">
+          <span>💼</span> <span className="nav-label">Career</span>
+        </NavLink>
+        <button className={`nav-item ${certsOpen ? "active" : ""}`} aria-label="Certificates" onClick={() => setCertsOpen(true)}>
+          <span>🎓</span> <span className="nav-label">Certificates</span>
+          {me.certificates.length > 0 && <span className="nav-badge nav-badge-gold">{me.certificates.length}</span>}
+        </button>
+        <button className="nav-item" aria-label="My plan" onClick={() => navigate("/setup")}>
           <span>🎯</span> <span className="nav-label">My plan</span>
         </button>
-        <button className="nav-item nav-logout" onClick={logout}>
+        <button className="nav-item nav-logout" aria-label="Log out" onClick={logout}>
           <span>🚪</span> <span className="nav-label">Log out</span>
         </button>
       </aside>
@@ -109,6 +118,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <div className="content">{children}</div>
       </div>
       <SuggestionPopup />
+      {certsOpen && <CertSidebar onClose={() => setCertsOpen(false)} />}
     </div>
   );
 }

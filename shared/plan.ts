@@ -66,9 +66,24 @@ export function lessonDone(lesson: Lesson, lessonMinutes: Record<string, number>
   return lesson.placedOut || (lessonMinutes[lesson.id] ?? 0) >= lesson.minutes;
 }
 
-/** The first unfinished lesson; everything after it is locked. */
-export function currentLessonId(path: Unit[], lessonMinutes: Record<string, number>): string | null {
-  return allLessons(path).find((l) => !lessonDone(l, lessonMinutes))?.id ?? null;
+export type NextStep = { kind: "lesson"; id: string; skillId: string } | { kind: "test"; skillId: string } | null;
+
+/**
+ * What the learner should do next. Lessons go in order, and each level ends with a
+ * compulsory test that must be passed before the next level's lessons unlock.
+ */
+export function nextStep(path: Unit[], lessonMinutes: Record<string, number>, passedTests: Record<string, unknown>): NextStep {
+  for (const unit of path) {
+    const next = unit.lessons.find((l) => !lessonDone(l, lessonMinutes));
+    if (next) return { kind: "lesson", id: next.id, skillId: unit.skill.id };
+    if (!passedTests[unit.skill.id]) return { kind: "test", skillId: unit.skill.id };
+  }
+  return null;
+}
+
+/** A lesson can be studied if it's finished (extra practice) or it's the next step. */
+export function lessonAvailable(lesson: Lesson, step: NextStep, lessonMinutes: Record<string, number>): boolean {
+  return lessonDone(lesson, lessonMinutes) || (step?.kind === "lesson" && step.id === lesson.id);
 }
 
 export interface Estimate {

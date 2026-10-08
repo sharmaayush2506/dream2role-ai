@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildPath, currentLessonId, estimate, type Goal } from "../shared/plan.ts";
+import { buildPath, nextStep, estimate, type Goal } from "../shared/plan.ts";
 import { emptyProgress, levelInfo, liveStreak, logStudy, weekStart, weekSummary } from "../shared/game.ts";
 
 const goal = (over: Partial<Goal> = {}): Goal => ({
@@ -26,7 +26,7 @@ describe("estimate", () => {
     const path = buildPath(g);
     expect(path[0].lessons.filter((l) => l.placedOut)).toHaveLength(3);
     expect(estimate(g, {}, "2026-01-05").remainingHours).toBeLessThan(330);
-    expect(currentLessonId(path, {})).toBe("html-css:3");
+    expect(nextStep(path, {}, {})).toEqual({ kind: "lesson", id: "html-css:3", skillId: "html-css" });
   });
 
   it("more hours per week means an earlier finish", () => {

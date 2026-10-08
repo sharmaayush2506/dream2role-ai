@@ -4,9 +4,13 @@ import type { GameEvent } from "../../shared/game.ts";
 function describe(e: GameEvent): { emoji: string; title: string; body: string } | null {
   switch (e.type) {
     case "path-complete":
-      return { emoji: "🏆", title: "Path complete!", body: "You finished every level. Time to apply for that dream job!" };
+      return { emoji: "🏆", title: "Every lesson complete!", body: "Pass the final level test, then go get that dream job!" };
     case "unit-complete":
-      return { emoji: "👑", title: `${e.name} mastered!`, body: "Level complete. +200 bonus XP" };
+      return { emoji: "🏁", title: `All ${e.name} lessons done!`, body: "+200 bonus XP. Pass the level test to unlock the next level." };
+    case "test-passed":
+      return { emoji: "👑", title: `${e.name} level passed!`, body: `${e.score}/${e.total} correct. The next level is unlocked.` };
+    case "certificate":
+      return { emoji: "🎓", title: "Certified!", body: `You earned "${e.title}".` };
     case "level-up":
       return { emoji: "⭐", title: `Level ${e.level}!`, body: `You're now a ${e.title}.` };
     case "lesson-complete":
