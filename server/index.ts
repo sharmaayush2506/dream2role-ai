@@ -1,8 +1,9 @@
-import "./env.ts"; // must come first: loads .env before other modules read settings
+import { envFile, envLoaded } from "./env.ts"; // must come first: loads .env before other modules read settings
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import express from "express";
 import { createApp } from "./app.ts";
+import { aiEnabled, aiModel } from "./ai.ts";
 
 const app = createApp();
 const PORT = Number(process.env.PORT ?? 3001);
@@ -14,4 +15,12 @@ if (process.env.NODE_ENV === "production") {
   app.get(/^\/(?!api).*/, (_req, res) => res.sendFile(path.join(dist, "index.html")));
 }
 
-app.listen(PORT, () => console.log(`Dream2Role API listening on http://localhost:${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Dream2Role API listening on http://localhost:${PORT}`);
+  console.log(envLoaded ? `Settings loaded from ${envFile}` : `No .env file found at ${envFile}`);
+  console.log(
+    aiEnabled
+      ? `AI: ON (OpenAI, model ${aiModel})`
+      : "AI: OFF. Add OPENAI_API_KEY=... to the .env file above, then restart with npm run dev.",
+  );
+});
