@@ -16,7 +16,6 @@ export default function LessonModal({
   lesson,
   unit,
   roleTitle,
-  levelLabel,
   minutesDone,
   done,
   onClose,
@@ -25,7 +24,6 @@ export default function LessonModal({
   lesson: Lesson;
   unit: Unit;
   roleTitle: string;
-  levelLabel: string;
   minutesDone: number;
   done: boolean;
   onClose: () => void;
@@ -51,7 +49,7 @@ export default function LessonModal({
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className={`modal card ${tab === "notes" ? "modal-wide" : ""}`} role="dialog" aria-label={lesson.title} onClick={(e) => e.stopPropagation()}>
+      <div className="modal card" role="dialog" aria-label={lesson.title} onClick={(e) => e.stopPropagation()}>
         <button className="popup-close" aria-label="Close" onClick={onClose}>✕</button>
         <small className="modal-kicker">{unit.skill.icon} {unit.skill.name}</small>
         <h2>{lesson.title}</h2>
@@ -66,13 +64,7 @@ export default function LessonModal({
         </div>
 
         {tab === "notes" ? (
-          <LessonNotesPanel
-            lessonId={lesson.id}
-            lessonTitle={lesson.title}
-            skillName={unit.skill.name}
-            roleTitle={roleTitle}
-            levelLabel={levelLabel}
-          />
+          <LessonNotesPanel skillId={unit.skill.id} skillName={unit.skill.name} lessonTitle={lesson.title} />
         ) : (
           <>
             <div className="lesson-progress">

@@ -22,7 +22,6 @@ export interface UserRecord {
   payments: PaymentRecord[];
   tests: Record<string, PendingTest>; // tests in progress, keyed by test id
   careerCache: Partial<Record<"internships" | "projects" | "resume", { data: unknown; source: "ai" | "offline"; aiError?: string; at: string }>>;
-  notesCache: Record<string, { data: unknown; source: "ai" | "offline"; aiError?: string; at: string }>; // key: lesson|depth|focus
 }
 
 export interface Question {
@@ -64,7 +63,7 @@ export interface PaymentRecord {
   createdAt: string;
 }
 
-const DEFAULTS = { certCredits: 0, unlockedCerts: [], certificates: [], payments: [], tests: {}, careerCache: {}, notesCache: {} };
+const DEFAULTS = { certCredits: 0, unlockedCerts: [], certificates: [], payments: [], tests: {}, careerCache: {} };
 
 interface Data {
   users: UserRecord[];

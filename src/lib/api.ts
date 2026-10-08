@@ -102,18 +102,6 @@ export interface Resume {
   tips: string[];
 }
 
-export type NoteDepth = "quick" | "detailed" | "exam";
-
-export interface LessonNotes {
-  summary: string;
-  keyConcepts: { term: string; explanation: string }[];
-  example: { title: string; language: string; content: string };
-  steps: string[];
-  commonMistakes: string[];
-  practice: { question: string; answer: string }[];
-  cheatSheet: string[];
-}
-
 export interface Readiness {
   passed: number;
   total: number;
@@ -257,8 +245,6 @@ export const api = {
         resume?: AiResult<{ resume: Resume; input: ResumeInput }>;
       };
     }>("GET", "/career"),
-  lessonNotes: (lessonId: string, depth: NoteDepth, focus: string, refresh = false) =>
-    request<AiResult<LessonNotes>>("POST", `/lessons/${encodeURIComponent(lessonId)}/notes`, { depth, focus, refresh }),
   planInsight: () =>
     request<AiResult<{ headline: string; focus: string; tips: string[] } | null>>("POST", "/plan/insight", {}),
   internships: () => request<AiResult<{ internships: Internship[]; tips: string[] }>>("POST", "/career/internships", {}),

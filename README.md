@@ -11,7 +11,7 @@ A Duolingo-style planner that turns **Dream Job + Current Skills + Time + Deadli
   3. **Time.** Hours per week, from presets or a slider.
   4. **Deadline.** Optional.
   5. **Your plan.** Hours left, weeks needed, estimated finish date, and whether you'll make your deadline. If you won't, it shows how many hours per week you'd need.
-- **AI lesson notes.** Every lesson has a Notes tab next to the videos and tutorials. Notes are written for the learner's target job and their level in that skill, in three styles (Quick summary, Detailed, Exam prep), with an optional focus request. They include key concepts, a worked example (real code for technical topics), steps, common mistakes, practice questions with hidden answers and a cheat sheet. Saved per learner and printable.
+- **Lesson notes.** Every lesson has a Notes tab next to the videos and tutorials, linking to that topic on trusted notes sites chosen per skill (e.g. W3Schools, GeeksforGeeks and MDN for web development; Khan Academy for statistics; Nielsen Norman Group for UX; Moz for SEO). Each link jumps straight to the site's best-matching page.
 - **Learning path.** Each skill is a level made of lessons, laid out on a zig-zag path. Each lesson node has a progress ring, and lessons unlock in order.
 - **Game mechanics.** XP (1 per minute studied, plus bonuses for finishing lessons and levels), player levels (Dreamer → Legend), a daily streak, a daily goal bar, a weekly bar with per-day columns, per-skill bars, and confetti celebrations.
 - **Fun reminders.** A greeting toast, a 🔔 panel with playful nudges (e.g. when your streak is at risk), and optional browser notifications at a time you choose.

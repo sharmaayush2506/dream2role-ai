@@ -32,15 +32,6 @@ const resume = {
   tips: ["Add a link to the live weather app."],
 };
 let failResume = false;
-const notes = {
-  summary: "Flexbox lays items out in one dimension.",
-  keyConcepts: [{ term: "Main axis", explanation: "The direction items flow in." }],
-  example: { title: "Navbar", language: "css", content: ".nav { display: flex; gap: 1rem; }" },
-  steps: ["Set display: flex on the parent."],
-  commonMistakes: ["Putting flex properties on the children instead of the container."],
-  practice: [{ question: "What does justify-content control?", answer: "Alignment along the main axis." }],
-  cheatSheet: ["display: flex", "gap: 1rem"],
-};
 const candidate = (text: string) => ({ candidates: [{ content: { role: "model", parts: [{ text }] }, finishReason: "STOP", index: 0 }] });
 
 beforeAll(async () => {
@@ -83,9 +74,6 @@ beforeAll(async () => {
         const wantsJson = body.generationConfig?.responseMimeType === "application/json";
         res.writeHead(200, { "Content-Type": "application/json" });
         const props = Object.keys(body.generationConfig?.responseJsonSchema?.properties ?? {});
-        if (props.includes("keyConcepts")) {
-          return res.end(JSON.stringify(candidate(JSON.stringify(notes))));
-        }
         if (props.includes("focus")) {
           return res.end(JSON.stringify(candidate(JSON.stringify({ headline: "Strong start", focus: "Finish HTML first.", tips: ["a", "b", "c", "d"] }))));
         }
@@ -181,31 +169,5 @@ describe("Gemini integration", () => {
     expect(r.source).toBe("ai");
     expect(r.data.headline).toBe("Strong start");
     expect(r.data.tips).toHaveLength(3); // trimmed to three
-  });
-
-  it("writes personalised lesson notes and reuses saved ones", async () => {
-    const before = calls.length;
-    const body = { depth: "exam", focus: "use e-commerce examples" };
-    const first = await (await call("POST", "/lessons/html-css:2/notes", body)).json();
-    expect(first.source).toBe("ai");
-    expect(first.data.example.language).toBe("css");
-    const req = calls.slice(before).find((c) => JSON.stringify(c.body).includes("keyConcepts"))!;
-    const prompt = JSON.stringify(req.body);
-    expect(prompt).toContain("Flexbox & Grid");
-    expect(prompt).toContain("Advanced"); // the learner's level in HTML & CSS
-    expect(prompt).toContain("Exam prep");
-    expect(prompt).toContain("use e-commerce examples");
-
-    // Same lesson + style + focus: served from the saved copy, no new AI call.
-    const callsAfterFirst = calls.length;
-    const again = await (await call("POST", "/lessons/html-css:2/notes", body)).json();
-    expect(again.at).toBe(first.at);
-    expect(calls.length).toBe(callsAfterFirst);
-
-    // Regenerate asks the AI again.
-    await call("POST", "/lessons/html-css:2/notes", { ...body, refresh: true });
-    expect(calls.length).toBeGreaterThan(callsAfterFirst);
-
-    expect((await call("POST", "/lessons/nope:1/notes", body)).status).toBe(404);
   });
 });
