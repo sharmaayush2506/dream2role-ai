@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useAuth } from "../lib/auth.tsx";
 import { ThemeMenu } from "../lib/theme.tsx";
+import Logo from "../components/Logo.tsx";
 
 type Mode = "login" | "signup";
 
@@ -10,9 +11,7 @@ export default function Landing() {
   return (
     <div className="landing">
       <header className="landing-bar">
-        <div className="logo">
-          <span className="logo-mark">🚀</span> dream2role
-        </div>
+        <Logo size={32} />
         <nav>
           <ThemeMenu />
           <button className="btn btn-ghost" onClick={() => setMode("login")}>Log in</button>
@@ -22,9 +21,6 @@ export default function Landing() {
 
       <main className="hero">
         <div className="hero-copy">
-          <div className="mascot-big" aria-hidden>
-            <span className="bob">🚀</span>
-          </div>
           <h1>
             Turn your dream job into a <span className="hl">clear, achievable plan</span>.
           </h1>

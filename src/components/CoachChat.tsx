@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { askCoach, type ChatMessage } from "../lib/api.ts";
 import { useAuth } from "../lib/auth.tsx";
+import { RocketMark } from "./Logo.tsx";
 
 const STORE_KEY = "d2r.coachChat";
 
@@ -72,14 +73,14 @@ export default function CoachChat() {
     <>
       {!open && (
         <button className="coach-fab" onClick={() => setOpen(true)} aria-label="Ask Rolo, your AI coach">
-          <span className="bob">🚀</span>
+          <RocketMark size={28} />
           <span className="coach-fab-label">Ask Rolo</span>
         </button>
       )}
       {open && (
         <div className="coach-panel card" role="dialog" aria-label="AI coach">
           <header className="coach-head">
-            <span className="coach-avatar">🚀</span>
+            <RocketMark size={36} />
             <div>
               <strong>Rolo</strong>
               <small>Your AI career coach</small>

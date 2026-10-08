@@ -6,12 +6,13 @@ import Setup from "./pages/Setup.tsx";
 import Learn from "./pages/Learn.tsx";
 import Friends from "./pages/Friends.tsx";
 import AppShell from "./components/AppShell.tsx";
+import { RocketMark } from "./components/Logo.tsx";
 import Career from "./pages/Career.tsx";
 import CertificatePage from "./pages/CertificatePage.tsx";
 
 function Protected({ children, needsGoal = true }: { children: ReactNode; needsGoal?: boolean }) {
   const { user, loading } = useAuth();
-  if (loading) return <div className="splash">🚀</div>;
+  if (loading) return <div className="splash"><RocketMark size={48} /></div>;
   if (!user) return <Navigate to="/" replace />;
   if (needsGoal && !user.goal) return <Navigate to="/setup" replace />;
   return <>{children}</>;
@@ -19,7 +20,7 @@ function Protected({ children, needsGoal = true }: { children: ReactNode; needsG
 
 export default function App() {
   const { user, loading } = useAuth();
-  if (loading) return <div className="splash">🚀</div>;
+  if (loading) return <div className="splash"><RocketMark size={48} /></div>;
 
   return (
     <Routes>

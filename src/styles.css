@@ -4,6 +4,7 @@
    ========================================================================= */
 :root {
   color-scheme: light;
+  --brand: #16a34a;
   --bg: #f6f8fb;
   --surface: #ffffff;
   --surface-2: #f1f4f8;
@@ -233,11 +234,12 @@ b, strong { font-weight: 600; }
   background: color-mix(in srgb, var(--surface) 85%, transparent); backdrop-filter: blur(10px);
 }
 .landing-bar nav { display: flex; gap: 8px; align-items: center; }
-.logo { font-size: 20px; font-weight: 800; color: var(--text); letter-spacing: -0.03em; display: flex; align-items: center; gap: 8px; }
-.logo-mark {
-  font-size: 16px; width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center;
-  background: var(--primary); box-shadow: var(--shadow-sm);
-}
+/* Logo: rocket mark + "dream2role" wordmark (Plus Jakarta Sans ExtraBold) */
+.logo { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
+.rocket-mark { display: block; flex-shrink: 0; }
+.logo .rocket-mark { filter: drop-shadow(0 1px 2px rgba(22, 163, 74, 0.25)); }
+.logo-word { font-size: 20px; font-weight: 800; letter-spacing: -0.035em; color: var(--text); line-height: 1; }
+.logo-two { color: var(--primary); }
 .hero {
   max-width: 1120px; margin: 0 auto; padding: 72px 32px 40px;
   display: flex; gap: 56px; align-items: center; justify-content: center; flex-wrap: wrap;
@@ -346,8 +348,8 @@ b, strong { font-weight: 600; }
   width: 240px; border-right: 1px solid var(--border); background: var(--surface); padding: 18px 12px;
   display: flex; flex-direction: column; gap: 2px; position: sticky; top: 0; height: 100vh;
 }
-.sidebar .logo { margin: 0 8px 22px; font-size: 18px; }
-.sidebar .logo-mark { width: 30px; height: 30px; font-size: 15px; }
+.sidebar .logo { margin: 2px 8px 22px; }
+.sidebar .logo-word { font-size: 19px; }
 .nav-item {
   display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: var(--radius-sm); border: none;
   text-decoration: none; color: var(--text-2); font-weight: 500; font-size: 14px;
@@ -701,7 +703,8 @@ b, strong { font-weight: 600; }
   height: 100%; border: 1px solid #c9a227; outline: 6px solid #f6efd6; outline-offset: -14px; border-radius: 2px;
   display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 32px; gap: 6px;
 }
-.cert-logo { color: #15803d; font-weight: 800; font-size: 18px; letter-spacing: -0.02em; }
+.cert-logo .logo-word { color: #111827; font-size: 18px; }
+.cert-logo .logo-two { color: #15803d; }
 .cert-kicker { letter-spacing: 0.3em; font-weight: 600; font-size: 12px; color: #a17a10; margin-top: 10px; }
 .certificate p { color: #4b5563; }
 .certificate h1 { font-size: clamp(28px, 5vw, 46px); color: #111827; margin: 4px 0; font-family: Georgia, serif; font-weight: 400; }
@@ -723,7 +726,7 @@ b, strong { font-weight: 600; }
   padding: 10px 18px 10px 12px; font: inherit; font-weight: 600; font-size: 14px; cursor: pointer; box-shadow: var(--shadow-lg);
   transition: transform 0.15s;
 }
-.coach-fab span:first-child { font-size: 18px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--primary); animation: none; }
+.coach-fab .rocket-mark { border-radius: 50%; }
 .coach-fab:hover { transform: translateY(-1px); }
 .coach-panel {
   position: fixed; right: 20px; bottom: 20px; width: min(400px, calc(100vw - 32px)); height: min(600px, calc(100vh - 110px));

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, type Certificate } from "../lib/api.ts";
 import { formatDate } from "../lib/format.ts";
+import Logo from "../components/Logo.tsx";
 
 /** Public, printable certificate. Anyone with the link can verify it. */
 export default function CertificatePage() {
@@ -30,7 +31,7 @@ export default function CertificatePage() {
       </div>
       <div className="certificate">
         <div className="cert-border">
-          <div className="cert-logo">🚀 dream2role</div>
+          <Logo size={30} className="cert-logo" />
           <p className="cert-kicker">CERTIFICATE OF ACHIEVEMENT</p>
           <p>This certifies that</p>
           <h1>{cert.name}</h1>

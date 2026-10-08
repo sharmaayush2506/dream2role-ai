@@ -7,6 +7,7 @@ import { api } from "../lib/api.ts";
 import { useAuth } from "../lib/auth.tsx";
 import { formatDate, plural } from "../lib/format.ts";
 import { ThemeMenu } from "../lib/theme.tsx";
+import { RocketMark } from "../components/Logo.tsx";
 
 const STEPS = ["Dream job", "Current skills", "Time", "Deadline", "Your plan"] as const;
 
@@ -247,7 +248,7 @@ export default function Setup() {
           </button>
         ) : (
           <button className="btn btn-green btn-xl" disabled={saving} onClick={finish}>
-            {saving ? "Building your path…" : existing ? "Save my plan" : "Start my journey 🚀"}
+            {saving ? "Building your path…" : existing ? "Save my plan" : "Start my journey"}
           </button>
         )}
       </footer>
@@ -263,7 +264,7 @@ function lateBy(deadline: string, finish: string): string {
 function Bubble({ children }: { children: React.ReactNode }) {
   return (
     <div className="mascot-row">
-      <span className="mascot">🚀</span>
+      <RocketMark size={44} />
       <div className="speech">{children}</div>
     </div>
   );

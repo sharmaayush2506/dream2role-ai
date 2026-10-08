@@ -9,6 +9,7 @@ import SuggestionPopup from "./SuggestionPopup.tsx";
 import CertSidebar from "./CertSidebar.tsx";
 import CoachChat from "./CoachChat.tsx";
 import Icon from "./Icon.tsx";
+import Logo from "./Logo.tsx";
 import { ThemeMenu } from "../lib/theme.tsx";
 
 export default function AppShell({ children }: { children: ReactNode }) {
@@ -42,9 +43,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="shell">
       <aside className="sidebar">
-        <div className="logo">
-          <span className="logo-mark">🚀</span> <span className="logo-text">dream2role</span>
-        </div>
+        <Logo size={30} className="sidebar-logo" />
         <NavLink to="/learn" className="nav-item" aria-label="Learn">
           <Icon name="home" /> <span className="nav-label">Learn</span>
         </NavLink>
