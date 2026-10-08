@@ -14,7 +14,7 @@ export const aiEnabled = aiProvider !== null;
 const PROVIDER_NAME = aiProvider === "gemini" ? "Gemini" : "OpenAI";
 
 let model =
-  aiProvider === "gemini" ? (process.env.GEMINI_MODEL ?? "gemini-2.5-flash") : (process.env.OPENAI_MODEL ?? "gpt-5.4-mini");
+  aiProvider === "gemini" ? (process.env.GEMINI_MODEL ?? "gemini-flash-latest") : (process.env.OPENAI_MODEL ?? "gpt-5.4-mini");
 /** The model in use (it can be swapped at startup if the configured one isn't available). */
 export const aiModel = () => model;
 
@@ -39,7 +39,7 @@ export function explainAiError(err: unknown): string {
     if (err.status === 401 || err.status === 403)
       return "Gemini rejected the API key or it lacks permission. Create a key at aistudio.google.com/apikey, put it in .env as GEMINI_API_KEY, then restart.";
     if (err.status === 404)
-      return `The Gemini model "${model}" wasn't found. Set GEMINI_MODEL in .env to a model from aistudio.google.com (for example gemini-2.5-flash), then restart.`;
+      return `The Gemini model "${model}" isn't available to your key. Remove GEMINI_MODEL from .env (the app then picks a working model itself), or set it to a model listed in aistudio.google.com, then restart.`;
     if (err.status === 429)
       return "Gemini's usage limit was reached (free tier allows a limited number of requests per minute and per day). Wait a minute and try again.";
     return `Gemini error ${err.status}: ${err.message}`;
@@ -62,36 +62,67 @@ export function explainAiError(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-/** Picks a fast general-purpose Gemini model the key can use, e.g. when the configured one doesn't exist. */
-async function pickGeminiModel(): Promise<string | null> {
+/** Version number in a Gemini model name, e.g. "gemini-2.5-flash" -> 2.5 ("-latest" aliases rank highest). */
+function geminiVersion(name: string): number {
+  if (name.endsWith("-latest")) return Infinity;
+  return Number(name.match(/^gemini-(\d+(?:\.\d+)?)/)?.[1] ?? 0);
+}
+
+/**
+ * Fast general-purpose Gemini models the key can use, best first: Flash before Flash-Lite,
+ * stable before preview/experimental, newest version first.
+ */
+async function geminiCandidates(): Promise<string[]> {
   const names: string[] = [];
   for await (const m of await gemini!.models.list()) {
     if (m.name && (m.supportedActions ?? []).includes("generateContent")) names.push(m.name.replace(/^models\//, ""));
   }
-  const usable = names.filter((n) => /^gemini-/.test(n) && !/(image|tts|audio|live|embedding|vision|thinking-exp)/.test(n));
-  return usable.find((n) => /flash/.test(n) && !/lite/.test(n)) ?? usable.find((n) => /flash/.test(n)) ?? usable[0] ?? null;
+  const rank = (n: string) => (/lite/.test(n) ? 2 : 0) + (/(preview|exp)/.test(n) ? 1 : 0);
+  return names
+    .filter((n) => /^gemini-/.test(n) && /flash/.test(n) && !/(image|tts|audio|live|embedding|vision|thinking)/.test(n))
+    .sort((a, b) => rank(a) - rank(b) || geminiVersion(b) - geminiVersion(a));
 }
 
-/** A free check (no tokens used) that the key works and the model is available. */
-export async function checkAi(): Promise<{ ok: true; note?: string } | { ok: false; reason: string }> {
-  if (!aiEnabled) return { ok: false, reason: "No GEMINI_API_KEY or OPENAI_API_KEY set." };
+const isGeminiNotFound = (err: unknown) => err instanceof GeminiApiError && err.status === 404;
+
+/**
+ * Runs a Gemini call; if Google says the model isn't available (retired models return 404),
+ * switches to the best available Flash model and retries.
+ */
+async function withGeminiModel<T>(fn: (model: string) => Promise<T>): Promise<T> {
   try {
-    if (gemini) await gemini.models.get({ model });
-    else await openai!.models.retrieve(model);
-    return { ok: true };
+    return await fn(model);
   } catch (err) {
-    if (gemini && err instanceof GeminiApiError && err.status === 404 && !process.env.GEMINI_MODEL) {
+    if (!isGeminiNotFound(err)) throw err;
+    const failed = model;
+    for (const alt of (await geminiCandidates()).filter((n) => n !== failed).slice(0, 4)) {
       try {
-        const alt = await pickGeminiModel();
-        if (alt) {
-          const was = model;
-          model = alt;
-          return { ok: true, note: `"${was}" isn't available, so using "${alt}" instead.` };
-        }
-      } catch {
-        /* fall through to the original error */
+        const out = await fn(alt);
+        model = alt;
+        console.log(`AI: "${failed}" isn't available to this key, switched to "${alt}".`);
+        return out;
+      } catch (e) {
+        if (!isGeminiNotFound(e)) throw e;
       }
     }
+    throw err;
+  }
+}
+
+/** Checks that the key works by making one tiny request with the current model. */
+export async function checkAi(): Promise<{ ok: true; note?: string } | { ok: false; reason: string }> {
+  if (!aiEnabled) return { ok: false, reason: "No GEMINI_API_KEY or OPENAI_API_KEY set." };
+  const before = model;
+  try {
+    if (gemini) {
+      await withGeminiModel((m) =>
+        gemini.models.generateContent({ model: m, contents: "Reply with the word OK.", config: { maxOutputTokens: 20 } }),
+      );
+    } else {
+      await openai!.models.retrieve(model);
+    }
+    return model === before ? { ok: true } : { ok: true, note: `"${before}" isn't available, so using "${model}" instead.` };
+  } catch (err) {
     return { ok: false, reason: explainAiError(err) };
   }
 }
@@ -106,11 +137,14 @@ function jsonSchemaFor(schema: z.ZodType): unknown {
 /** Ask the model for JSON matching `schema`. */
 async function generate<T extends z.ZodType>(schema: T, instructions: string, prompt: string): Promise<z.infer<T>> {
   if (gemini) {
-    const response = await gemini.models.generateContent({
-      model,
-      contents: prompt,
-      config: { systemInstruction: instructions, responseMimeType: "application/json", responseJsonSchema: jsonSchemaFor(schema) },
-    });
+    const g = gemini;
+    const response = await withGeminiModel((m) =>
+      g.models.generateContent({
+        model: m,
+        contents: prompt,
+        config: { systemInstruction: instructions, responseMimeType: "application/json", responseJsonSchema: jsonSchemaFor(schema) },
+      }),
+    );
     if (!response.text) throw new Error("Gemini returned an empty or blocked response");
     return schema.parse(JSON.parse(response.text));
   }
@@ -127,11 +161,10 @@ async function generate<T extends z.ZodType>(schema: T, instructions: string, pr
 /** Streams a chat reply, calling `onText` with each new piece of text. */
 export async function streamChat(instructions: string, messages: ChatMessage[], onText: (delta: string) => void): Promise<void> {
   if (gemini) {
-    const stream = await gemini.models.generateContentStream({
-      model,
-      contents: messages.map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] })),
-      config: { systemInstruction: instructions },
-    });
+    const g = gemini;
+    const contents = messages.map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] }));
+    // The 404 for a retired model arrives when the stream is opened, before any text is sent.
+    const stream = await withGeminiModel((m) => g.models.generateContentStream({ model: m, contents, config: { systemInstruction: instructions } }));
     for await (const chunk of stream) if (chunk.text) onText(chunk.text);
     return;
   }

@@ -23,36 +23,45 @@ const quiz = {
 const candidate = (text: string) => ({ candidates: [{ content: { role: "model", parts: [{ text }] }, finishReason: "STOP", index: 0 }] });
 
 beforeAll(async () => {
+  // Simulates retired models: Google still lists them, but generating with them returns 404.
+  const RETIRED = ["gemini-flash-latest", "gemini-9-flash"];
+  const notFound = (res: http.ServerResponse, m: string) => {
+    res.writeHead(404, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: { code: 404, message: `models/${m} is no longer available to new users`, status: "NOT_FOUND" } }));
+  };
   const mock = http.createServer((req, res) => {
     let raw = "";
     req.on("data", (c) => (raw += c));
     req.on("end", () => {
       const url = req.url ?? "";
       calls.push({ url, body: raw ? JSON.parse(raw) : {} });
-      if (req.method === "GET" && /\/models\/gemini-2\.5-flash/.test(url)) {
-        res.writeHead(404, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ error: { code: 404, message: "models/gemini-2.5-flash is not found", status: "NOT_FOUND" } }));
-      }
-      if (req.method === "GET" && /\/models\?|\/models$/.test(url)) {
+      const m = url.match(/models\/([\w.-]+):/)?.[1] ?? "";
+      if (req.method === "GET" && /\/models(\?|$)/.test(url)) {
         res.writeHead(200, { "Content-Type": "application/json" });
         return res.end(
           JSON.stringify({
             models: [
               { name: "models/gemini-embedding-001", supportedGenerationMethods: ["embedContent"] },
               { name: "models/gemini-9-flash-lite", supportedGenerationMethods: ["generateContent"] },
+              { name: "models/gemini-10-flash-preview", supportedGenerationMethods: ["generateContent"] },
+              { name: "models/gemini-8-flash", supportedGenerationMethods: ["generateContent"] },
               { name: "models/gemini-9-flash", supportedGenerationMethods: ["generateContent"] },
             ],
           }),
         );
       }
       if (url.includes(":streamGenerateContent")) {
+        if (RETIRED.includes(m)) return notFound(res, m);
         res.writeHead(200, { "Content-Type": "text/event-stream" });
         for (const t of ["Hi from ", "Gemini!"]) res.write(`data: ${JSON.stringify(candidate(t))}\r\n\r\n`);
         return res.end();
       }
       if (url.includes(":generateContent")) {
+        if (RETIRED.includes(m)) return notFound(res, m);
+        const body = JSON.parse(raw);
+        const wantsJson = body.generationConfig?.responseMimeType === "application/json";
         res.writeHead(200, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify(candidate(JSON.stringify(quiz))));
+        return res.end(JSON.stringify(candidate(wantsJson ? JSON.stringify(quiz) : "OK")));
       }
       res.writeHead(404);
       res.end("{}");
@@ -84,12 +93,14 @@ const call = (method: string, url: string, body?: unknown) =>
   });
 
 describe("Gemini integration", () => {
-  it("falls back to an available Flash model when the default isn't found", async () => {
+  it("skips retired models and switches to the newest working stable Flash model", async () => {
     const ai = await import("../server/ai.ts");
     expect(ai.aiProvider).toBe("gemini");
+    expect(ai.aiModel()).toBe("gemini-flash-latest");
     const r = await ai.checkAi();
-    expect(r.ok).toBe(true);
-    expect(ai.aiModel()).toBe("gemini-9-flash");
+    expect(r).toMatchObject({ ok: true });
+    // gemini-9-flash is newest but retired; previews and Lite rank lower than stable Flash.
+    expect(ai.aiModel()).toBe("gemini-8-flash");
   });
 
   it("generates a level test as structured JSON", async () => {
@@ -99,7 +110,7 @@ describe("Gemini integration", () => {
     const test = await (await call("POST", "/tests/start", { kind: "level", ref: "html-css" })).json();
     expect(test.source).toBe("ai");
     expect(test.questions).toHaveLength(8);
-    const req = calls.find((c) => c.url.includes("gemini-9-flash:generateContent"))!;
+    const req = calls.find((c) => c.url.includes("gemini-8-flash:generateContent") && (c.body.generationConfig as { responseMimeType?: string })?.responseMimeType === "application/json")!;
     const cfg = req.body.generationConfig as { responseMimeType: string; responseJsonSchema: { type: string } };
     expect(cfg.responseMimeType).toBe("application/json");
     expect(cfg.responseJsonSchema.type).toBe("object");
