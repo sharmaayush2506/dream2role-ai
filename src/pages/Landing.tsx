@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useAuth } from "../lib/auth.tsx";
 import { ThemeMenu } from "../lib/theme.tsx";
 import Logo from "../components/Logo.tsx";
+import NetworkBackground from "../components/NetworkBackground.tsx";
 
 type Mode = "login" | "signup";
 
@@ -10,6 +11,7 @@ export default function Landing() {
 
   return (
     <div className="landing">
+      <NetworkBackground />
       <header className="landing-bar">
         <Logo size={32} />
         <nav>

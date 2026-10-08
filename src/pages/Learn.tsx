@@ -11,6 +11,7 @@ import LessonModal from "../components/LessonModal.tsx";
 import Celebration from "../components/Celebration.tsx";
 import WeekBars from "../components/WeekBars.tsx";
 import TestRunner from "../components/TestRunner.tsx";
+import NetworkBackground from "../components/NetworkBackground.tsx";
 
 const UNIT_COLORS = ["green", "purple", "blue", "orange", "pink", "teal"];
 // Zig-zag offsets (in px) for lesson nodes, Duolingo style.
@@ -53,6 +54,7 @@ export default function Learn() {
 
   return (
     <div className="learn">
+      <NetworkBackground />
       <div className="path-col">
         {path.map((unit, ui) => (
           <UnitSection

@@ -818,3 +818,7 @@ b, strong { font-weight: 600; }
 }
 .ai-notice strong { font-size: 14px; color: var(--text); }
 .ai-notice p { margin: 2px 0 0; font-size: 13px; color: var(--text-2); max-width: 560px; }
+
+/* Animated career-network background (behind the roadmap and landing page) */
+.network-bg { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+@media print { .network-bg { display: none; } }
