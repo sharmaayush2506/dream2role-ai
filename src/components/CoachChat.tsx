@@ -13,6 +13,24 @@ function loadChat(): ChatMessage[] {
   }
 }
 
+const DOCK_KEY = "d2r.coachDock";
+
+function loadDockOpen(): boolean {
+  try {
+    return localStorage.getItem(DOCK_KEY) !== "closed";
+  } catch {
+    return true;
+  }
+}
+
+function saveDockOpen(open: boolean) {
+  try {
+    localStorage.setItem(DOCK_KEY, open ? "open" : "closed");
+  } catch {
+    /* ignore */
+  }
+}
+
 function saveChat(msgs: ChatMessage[]) {
   try {
     sessionStorage.setItem(STORE_KEY, JSON.stringify(msgs.slice(-30)));
@@ -21,10 +39,14 @@ function saveChat(msgs: ChatMessage[]) {
   }
 }
 
-/** Floating "Ask Rolo" button that opens a chat with the AI coach. */
-export default function CoachChat() {
+/**
+ * Chat with Rolo, the AI coach. "docked" fills the sidebar like an editor's chat panel and can be
+ * minimised; "floating" is an "Ask Rolo" button that opens a pop-up (used on phones).
+ */
+export default function CoachChat({ variant = "floating" }: { variant?: "docked" | "floating" }) {
   const { user } = useAuth();
-  const [open, setOpen] = useState(false);
+  const docked = variant === "docked";
+  const [open, setOpen] = useState(() => (docked ? loadDockOpen() : false));
   const [messages, setMessages] = useState<ChatMessage[]>(loadChat);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -33,8 +55,13 @@ export default function CoachChat() {
   const role = user?.goal?.roleTitle ?? "your dream job";
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ block: "end" });
+    endRef.current?.parentElement?.scrollTo({ top: endRef.current.parentElement.scrollHeight });
   }, [messages, open]);
+
+  function toggle(next: boolean) {
+    setOpen(next);
+    if (docked) saveDockOpen(next);
+  }
 
   async function send(text: string) {
     const q = text.trim();
@@ -71,16 +98,26 @@ export default function CoachChat() {
 
   return (
     <>
-      {!open && (
-        <button className="coach-fab" onClick={() => setOpen(true)} aria-label="Ask Rolo, your AI coach">
+      {!open && !docked && (
+        <button className="coach-fab" onClick={() => toggle(true)} aria-label="Ask Rolo, your AI coach">
           <RocketMark size={28} />
           <span className="coach-fab-label">Ask Rolo</span>
         </button>
       )}
+      {!open && docked && (
+        <button className="coach-dock-bar" onClick={() => toggle(true)} aria-label="Open Rolo, your AI coach">
+          <RocketMark size={26} />
+          <span>
+            <strong>Ask Rolo</strong>
+            <small>Your AI career coach</small>
+          </span>
+          <span className="coach-dock-chevron" aria-hidden="true">▴</span>
+        </button>
+      )}
       {open && (
-        <div className="coach-panel card" role="dialog" aria-label="AI coach">
+        <div className={docked ? "coach-dock" : "coach-panel card"} role={docked ? "region" : "dialog"} aria-label="AI coach">
           <header className="coach-head">
-            <RocketMark size={36} />
+            <RocketMark size={docked ? 30 : 36} />
             <div>
               <strong>Rolo</strong>
               <small>Your AI career coach</small>
@@ -89,7 +126,9 @@ export default function CoachChat() {
             {messages.length > 0 && (
               <button className="icon-btn small" title="New chat" aria-label="New chat" onClick={() => { setMessages([]); saveChat([]); }}>🗑️</button>
             )}
-            <button className="icon-btn small" aria-label="Close" onClick={() => setOpen(false)}>✕</button>
+            <button className="icon-btn small" title={docked ? "Minimise" : "Close"} aria-label={docked ? "Minimise Rolo" : "Close"} onClick={() => toggle(false)}>
+              {docked ? "▾" : "✕"}
+            </button>
           </header>
 
           <div className="coach-body">
@@ -113,7 +152,7 @@ export default function CoachChat() {
           </div>
 
           <form className="coach-input" onSubmit={submit}>
-            <input className="input" placeholder="Ask Rolo…" value={input} maxLength={2000} onChange={(e) => setInput(e.target.value)} autoFocus />
+            <input className="input" placeholder="Ask Rolo…" value={input} maxLength={2000} onChange={(e) => setInput(e.target.value)} autoFocus={!docked} />
             <button className="btn btn-green btn-sm" disabled={busy || !input.trim()}>Send</button>
           </form>
         </div>

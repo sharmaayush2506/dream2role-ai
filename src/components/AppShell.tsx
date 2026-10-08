@@ -11,6 +11,7 @@ import CoachChat from "./CoachChat.tsx";
 import Icon from "./Icon.tsx";
 import Logo from "./Logo.tsx";
 import { ThemeMenu } from "../lib/theme.tsx";
+import { useMediaQuery } from "../lib/useMediaQuery.ts";
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
@@ -24,6 +25,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const [bellOpen, setBellOpen] = useState(false);
   const [certsOpen, setCertsOpen] = useState(false);
   const shown = useRef(false);
+  const wide = useMediaQuery("(min-width: 721px)");
 
   // Greet with the most relevant nudge once per browser session.
   useEffect(() => {
@@ -61,6 +63,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <button className="nav-item" aria-label="My plan" onClick={() => navigate("/setup")}>
           <Icon name="target" /> <span className="nav-label">My plan</span>
         </button>
+        {wide && <CoachChat variant="docked" />}
         <button className="nav-item nav-logout" aria-label="Log out" onClick={logout}>
           <Icon name="logout" /> <span className="nav-label">Log out</span>
         </button>
@@ -122,7 +125,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <div className="content">{children}</div>
       </div>
       <SuggestionPopup />
-      <CoachChat />
+      {!wide && <CoachChat />}
       {certsOpen && <CertSidebar onClose={() => setCertsOpen(false)} />}
     </div>
   );

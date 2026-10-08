@@ -25,7 +25,7 @@ A Duolingo-style planner that turns **Dream Job + Current Skills + Time + Deadli
   - **AI project ideas** are open from day one too. Each one includes the full tech stack, features, milestones, ways to use AI to build it, and a portfolio tip.
   - **AI resume builder.** It writes a one-page resume in the format your target internship's field expects and pulls in your skills and certificates. You can download it as a PDF through the print dialog.
 
-- **Rolo, the AI coach** (🚀 "Ask Rolo" button on every page). A chat assistant that knows your dream job, plan, deadline, streak, next lesson, level tests and certificates. It explains topics, plans your study time, helps you prep for tests (without giving away answers) and points you to the right part of the app. Replies stream in as they're written.
+- **Rolo, the AI coach**, docked in the left sidebar under "My plan" and filling the rest of it, like a chat panel in a code editor. It can be minimised to a bar, and on phones it becomes a floating "Ask Rolo" button. A chat assistant that knows your dream job, plan, deadline, streak, next lesson, level tests and certificates. It explains topics, plans your study time, helps you prep for tests (without giving away answers) and points you to the right part of the app. Replies stream in as they're written.
 
 All AI features go through `server/ai.ts`, which supports Google Gemini and OpenAI: structured JSON output for tests, internships, projects and resumes, and streaming for the coach.
 
