@@ -59,6 +59,8 @@ export function explainAiError(err: unknown): string {
   if (err instanceof OpenAI.APIConnectionError || (err instanceof TypeError && /fetch failed/i.test(err.message)))
     return `Couldn't reach ${PROVIDER_NAME}. Check your internet connection, VPN or firewall.`;
   if (err instanceof OpenAI.APIError) return `OpenAI error ${err.status ?? ""}: ${err.message}`;
+  if (err instanceof SyntaxError || err instanceof z.ZodError)
+    return "The AI's answer came back in an unexpected format. Please try again; this is usually a one-off.";
   return err instanceof Error ? err.message : String(err);
 }
 
@@ -173,13 +175,14 @@ export async function streamChat(instructions: string, messages: ChatMessage[], 
 }
 
 /** Try the AI first; on any failure (or no credentials) use the offline version. */
-async function withFallback<T>(ai: () => Promise<T>, offline: () => T): Promise<{ data: T; source: Source }> {
+async function withFallback<T>(ai: () => Promise<T>, offline: () => T): Promise<{ data: T; source: Source; aiError?: string }> {
   if (!aiEnabled) return { data: offline(), source: "offline" };
   try {
     return { data: await ai(), source: "ai" };
   } catch (err) {
-    console.error("AI request failed, using offline content:", explainAiError(err));
-    return { data: offline(), source: "offline" };
+    const aiError = explainAiError(err);
+    console.error("AI request failed, using offline content:", aiError);
+    return { data: offline(), source: "offline", aiError };
   }
 }
 
@@ -448,6 +451,6 @@ function offlineResume(input: ResumeInput, p: LearnerProfile): Resume {
     experience: lines(input.experience).map((l) => ({ title: l, organization: "", dates: "", bullets: [] })),
     education: lines(input.education).map((l) => ({ degree: l, school: "", dates: "", details: "" })),
     certifications: p.certificates,
-    tips: ["Add a Gemini or OpenAI API key on the server to get a fully tailored, rewritten resume."],
+    tips: [],
   };
 }

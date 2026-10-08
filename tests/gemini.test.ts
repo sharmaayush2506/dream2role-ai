@@ -20,6 +20,18 @@ const quiz = {
     explanation: "Because.",
   })),
 };
+const resume = {
+  headline: "Frontend Developer Intern candidate",
+  summary: "Builds accessible React apps.",
+  sectionOrder: ["skills", "projects", "education", "experience", "certifications"],
+  skills: [{ category: "Frontend", items: ["HTML & CSS", "React"] }],
+  projects: [{ name: "Weather app", stack: "React, Vite", bullets: ["Shows 7-day forecasts from a public API"] }],
+  experience: [],
+  education: [{ degree: "B.Tech Computer Science", school: "Delhi University", dates: "2023–2027", details: "CGPA 8.4" }],
+  certifications: [],
+  tips: ["Add a link to the live weather app."],
+};
+let failResume = false;
 const candidate = (text: string) => ({ candidates: [{ content: { role: "model", parts: [{ text }] }, finishReason: "STOP", index: 0 }] });
 
 beforeAll(async () => {
@@ -61,6 +73,11 @@ beforeAll(async () => {
         const body = JSON.parse(raw);
         const wantsJson = body.generationConfig?.responseMimeType === "application/json";
         res.writeHead(200, { "Content-Type": "application/json" });
+        const props = Object.keys(body.generationConfig?.responseJsonSchema?.properties ?? {});
+        if (props.includes("headline")) {
+          if (failResume) return res.end(JSON.stringify(candidate("not json")));
+          return res.end(JSON.stringify(candidate(JSON.stringify(resume))));
+        }
         return res.end(JSON.stringify(candidate(wantsJson ? JSON.stringify(quiz) : "OK")));
       }
       res.writeHead(404);
@@ -121,5 +138,26 @@ describe("Gemini integration", () => {
     expect(await res.text()).toBe("Hi from Gemini!");
     const req = calls.find((c) => c.url.includes(":streamGenerateContent"))!;
     expect(JSON.stringify(req.body.systemInstruction)).toContain("Dream job: Frontend Developer");
+  });
+
+  it("writes the resume with AI", async () => {
+    const input = { fullName: "Gem", email: "gem@x.io", targetInternship: "Frontend Developer Intern", education: "B.Tech CS, 2027" };
+    const r = await (await call("POST", "/career/resume", { input })).json();
+    expect(r.source).toBe("ai");
+    expect(r.data.resume.headline).toBe("Frontend Developer Intern candidate");
+    const req = calls.filter((c) => JSON.stringify(c.body).includes('"headline"')).pop()!;
+    const schema = JSON.stringify((req.body.generationConfig as { responseJsonSchema: unknown }).responseJsonSchema);
+    expect(schema).not.toContain("$schema");
+    expect(schema).not.toContain("additionalProperties");
+  });
+
+  it("explains why when AI can't write the resume", async () => {
+    failResume = true;
+    const input = { fullName: "Gem", email: "gem@x.io", targetInternship: "Frontend Developer Intern", education: "B.Tech CS, 2027" };
+    const r = await (await call("POST", "/career/resume", { input })).json();
+    failResume = false;
+    expect(r.source).toBe("offline");
+    expect(r.aiError).toBeTruthy();
+    expect(r.data.resume.tips).toEqual([]);
   });
 });

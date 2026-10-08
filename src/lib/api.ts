@@ -50,6 +50,7 @@ export interface TestResult {
 export interface AiResult<T> {
   data: T;
   source: "ai" | "offline";
+  aiError?: string; // why AI wasn't used, when it's connected but failed
   at?: string;
 }
 

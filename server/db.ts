@@ -21,7 +21,7 @@ export interface UserRecord {
   certificates: CertificateRecord[];
   payments: PaymentRecord[];
   tests: Record<string, PendingTest>; // tests in progress, keyed by test id
-  careerCache: Partial<Record<"internships" | "projects" | "resume", { data: unknown; source: "ai" | "offline"; at: string }>>;
+  careerCache: Partial<Record<"internships" | "projects" | "resume", { data: unknown; source: "ai" | "offline"; aiError?: string; at: string }>>;
 }
 
 export interface Question {

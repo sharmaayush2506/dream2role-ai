@@ -250,7 +250,7 @@ export function registerCareerRoutes(app: Express) {
     if (!parsed.data.fullName.trim() || !parsed.data.targetInternship.trim() || !parsed.data.education.trim())
       throw new HttpError(400, "Please fill in your name, target internship and education");
     const out = await buildResume(parsed.data, learnerProfile(user));
-    const entry = { data: { resume: out.data, input: parsed.data }, source: out.source, at: new Date().toISOString() };
+    const entry = { data: { resume: out.data, input: parsed.data }, source: out.source, aiError: out.aiError, at: new Date().toISOString() };
     user.careerCache.resume = entry;
     save();
     res.json(entry);

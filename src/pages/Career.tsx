@@ -67,7 +67,27 @@ function Locked({ emoji, title, need, have }: { emoji: string; title: string; ne
 }
 
 function SourceBadge({ source }: { source: "ai" | "offline" }) {
-  return source === "ai" ? <span className="badge-ai">✨ AI generated</span> : <span className="badge-offline">offline suggestions</span>;
+  return source === "ai" ? <span className="badge-ai">✨ AI generated</span> : <span className="badge-offline">basic version (no AI)</span>;
+}
+
+/**
+ * Shown above a result that wasn't written by AI: either it was saved before AI was connected,
+ * or the AI call failed (with the reason).
+ */
+function NotAiNotice({ result, onRegenerate, busy }: { result: AiResult<unknown>; onRegenerate: () => void; busy: boolean }) {
+  const { user } = useAuth();
+  if (result.source === "ai" || !user!.features.ai) return null;
+  return (
+    <div className="ai-notice no-print">
+      <div>
+        <strong>{result.aiError ? "AI couldn't write this one" : "This was made before AI was connected"}</strong>
+        <p>{result.aiError ?? "AI is now available. Regenerate to get a version written for you by AI."}</p>
+      </div>
+      <button className="btn btn-green btn-sm" disabled={busy} onClick={onRegenerate}>
+        {busy ? "Working…" : "✨ Regenerate with AI"}
+      </button>
+    </div>
+  );
 }
 
 function useGenerate<T>(initial: AiResult<T> | undefined) {
@@ -114,6 +134,7 @@ function InternshipsTab({ readiness, initial }: { readiness: Readiness; initial?
       {g.result && !g.busy && (
         <>
           <SourceBadge source={g.result.source} />
+          <NotAiNotice result={g.result} busy={g.busy} onRegenerate={() => g.run(api.internships)} />
           <div className="idea-grid">
             {g.result.data.internships.map((it, i) => (
               <article key={i} className="idea card">
@@ -169,6 +190,7 @@ function ProjectsTab({ readiness, initial }: { readiness: Readiness; initial?: A
       {g.result && !g.busy && (
         <>
           <SourceBadge source={g.result.source} />
+          <NotAiNotice result={g.result} busy={g.busy} onRegenerate={() => g.run(() => api.projects(interests))} />
           {g.result.data.projects.map((p, i) => (
             <article key={i} className="project card">
               <div className="project-head">
@@ -266,6 +288,7 @@ function ResumeTab({ initial }: { initial?: AiResult<{ resume: Resume; input: Re
           <button className="btn btn-outline btn-sm" onClick={generate}>Regenerate</button>
           <button className="btn btn-green btn-sm" onClick={() => window.print()}>Download PDF</button>
         </div>
+        <NotAiNotice result={g.result} busy={g.busy} onRegenerate={generate} />
         {g.result.data.resume.tips.length > 0 && (
           <div className="card panel no-print resume-tips">
             <h3>Before you send it</h3>
