@@ -8,6 +8,8 @@ import { useReminders } from "../lib/useReminders.ts";
 import SuggestionPopup from "./SuggestionPopup.tsx";
 import CertSidebar from "./CertSidebar.tsx";
 import CoachChat from "./CoachChat.tsx";
+import Icon from "./Icon.tsx";
+import { ThemeMenu } from "../lib/theme.tsx";
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
@@ -44,24 +46,24 @@ export default function AppShell({ children }: { children: ReactNode }) {
           <span className="logo-mark">🚀</span> <span className="logo-text">dream2role</span>
         </div>
         <NavLink to="/learn" className="nav-item" aria-label="Learn">
-          <span>🏠</span> <span className="nav-label">Learn</span>
+          <Icon name="home" /> <span className="nav-label">Learn</span>
         </NavLink>
         <NavLink to="/friends" className="nav-item" aria-label="Friends">
-          <span>👯</span> <span className="nav-label">Friends</span>
+          <Icon name="users" /> <span className="nav-label">Friends</span>
           {me.incomingCount > 0 && <span className="nav-badge">{me.incomingCount}</span>}
         </NavLink>
         <NavLink to="/career" className="nav-item" aria-label="Career">
-          <span>💼</span> <span className="nav-label">Career</span>
+          <Icon name="briefcase" /> <span className="nav-label">Career</span>
         </NavLink>
         <button className={`nav-item ${certsOpen ? "active" : ""}`} aria-label="Certificates" onClick={() => setCertsOpen(true)}>
-          <span>🎓</span> <span className="nav-label">Certificates</span>
+          <Icon name="award" /> <span className="nav-label">Certificates</span>
           {me.certificates.length > 0 && <span className="nav-badge nav-badge-gold">{me.certificates.length}</span>}
         </button>
         <button className="nav-item" aria-label="My plan" onClick={() => navigate("/setup")}>
-          <span>🎯</span> <span className="nav-label">My plan</span>
+          <Icon name="target" /> <span className="nav-label">My plan</span>
         </button>
         <button className="nav-item nav-logout" aria-label="Log out" onClick={logout}>
-          <span>🚪</span> <span className="nav-label">Log out</span>
+          <Icon name="logout" /> <span className="nav-label">Log out</span>
         </button>
       </aside>
 
@@ -71,12 +73,14 @@ export default function AppShell({ children }: { children: ReactNode }) {
             <span>{role.emoji}</span> <span className="hud-role-text">{role.title}</span>
           </div>
           <div className="hud-stats">
-            <span className={`hud-stat ${streak ? "hud-streak" : "hud-muted"}`} title="Day streak">🔥 {streak}</span>
-            <span className="hud-stat hud-xp" title="Total XP">💎 {me.progress.xp}</span>
-            <span className="hud-stat hud-level" title={`Level ${lvl.level}: ${lvl.title}`}>⭐ {lvl.level}</span>
+            <span className={`hud-stat ${streak ? "hud-streak" : "hud-muted"}`} title="Day streak"><Icon name="flame" size={17} /> {streak}</span>
+            <span className="hud-stat hud-xp" title="Total XP"><Icon name="gem" size={17} /> {me.progress.xp}</span>
+            <span className="hud-stat hud-level" title={`Level ${lvl.level}: ${lvl.title}`}><Icon name="star" size={17} /> {lvl.level}</span>
+            <ThemeMenu />
             <div className="bell-wrap">
               <button className="hud-stat bell" aria-label="Reminders" aria-expanded={bellOpen} onClick={() => setBellOpen(!bellOpen)}>
-                🔔{reminders.length > 0 && <span className="bell-dot" />}
+                <Icon name="bell" size={18} />
+                {reminders.length > 0 && <span className="bell-dot" />}
               </button>
               {bellOpen && (
                 <div className="bell-panel card">

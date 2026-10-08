@@ -77,7 +77,7 @@ export default function Learn() {
       <aside className="side-col">
         <div className="card panel">
           <div className="panel-head">
-            <h3>⭐ Level {lvl.level} · {lvl.title}</h3>
+            <h3>Level {lvl.level} · {lvl.title}</h3>
             <span className="muted">{lvl.into}/{lvl.span} XP</span>
           </div>
           <div className="bar bar-gold"><div className="bar-fill" style={{ width: `${(lvl.into / lvl.span) * 100}%` }} /></div>
@@ -85,7 +85,7 @@ export default function Learn() {
 
         <div className="card panel">
           <div className="panel-head">
-            <h3>🎯 Daily goal</h3>
+            <h3>Daily goal</h3>
             <span className="muted">{Math.min(todayMinutes, dailyGoal)}/{dailyGoal} min</span>
           </div>
           <div className="bar bar-orange"><div className="bar-fill" style={{ width: `${Math.min(100, (todayMinutes / dailyGoal) * 100)}%` }} /></div>
@@ -94,7 +94,7 @@ export default function Learn() {
 
         <div className="card panel">
           <div className="panel-head">
-            <h3>📅 This week</h3>
+            <h3>This week</h3>
             <span className="muted">{minutesLabel(week.minutes)} / {goal.hoursPerWeek}h</span>
           </div>
           <div className="bar bar-blue"><div className="bar-fill" style={{ width: `${Math.min(100, (week.minutes / (goal.hoursPerWeek * 60)) * 100)}%` }} /></div>
@@ -103,7 +103,7 @@ export default function Learn() {
 
         <div className="card panel">
           <div className="panel-head">
-            <h3>⏳ Road to the job</h3>
+            <h3>Road to the job</h3>
             <span className="muted">{est.percentDone}%</span>
           </div>
           <div className="bar bar-green"><div className="bar-fill" style={{ width: `${est.percentDone}%` }} /></div>
@@ -122,7 +122,7 @@ export default function Learn() {
 
         <div className="card panel">
           <div className="panel-head">
-            <h3>💼 Career unlocks</h3>
+            <h3>Career unlocks</h3>
             <span className="muted">{readiness.passed}/{readiness.total} tests</span>
           </div>
           <ul className="unlock-list">
@@ -134,7 +134,7 @@ export default function Learn() {
         </div>
 
         <div className="card panel">
-          <h3>🧩 Skills</h3>
+          <h3>Skills</h3>
           {path.map((u, i) => {
             const total = u.lessons.reduce((s, l) => s + l.minutes, 0);
             const done = u.lessons.reduce((s, l) => s + (l.placedOut ? l.minutes : Math.min(l.minutes, lm[l.id] ?? 0)), 0);

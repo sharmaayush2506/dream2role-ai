@@ -42,7 +42,7 @@ export default function CertSidebar({ onClose }: { onClose: () => void }) {
       <div className="drawer-backdrop" onClick={onClose} />
       <aside className="drawer card" role="dialog" aria-label="Certifications">
         <div className="drawer-head">
-          <h2>🎓 Certifications</h2>
+          <h2>Certifications</h2>
           <button className="icon-btn" aria-label="Close" onClick={onClose}>✕</button>
         </div>
         <p className="muted">
@@ -163,7 +163,7 @@ function Checkout({ pack, forCert, onClose, onPaid }: { pack: Pack; forCert?: Ce
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal card" role="dialog" aria-label="Checkout" onClick={(e) => e.stopPropagation()}>
         <button className="popup-close" aria-label="Close" onClick={onClose}>✕</button>
-        <h2>🎓 Get certified</h2>
+        <h2>Get certified</h2>
         {forCert && <p className="muted">For: <b>{forCert.title}</b></p>}
         {mode === "off" ? (
           <p className="form-error">Payments aren't available yet. Please check back soon.</p>

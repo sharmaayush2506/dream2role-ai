@@ -59,7 +59,7 @@ export default function SuggestionPopup() {
   return (
     <div className="popup-suggest card" role="dialog" aria-label="People you may know">
       <button className="popup-close" aria-label="Close" onClick={close}>✕</button>
-      <h4>👋 Learn together!</h4>
+      <h4>People you may know</h4>
       <p className="muted">These people are on Dream2Role too. Streaks are way more fun with friends cheering you on.</p>
       {people.map((p) => (
         <div key={p.id} className="person-row">

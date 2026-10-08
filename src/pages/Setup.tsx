@@ -6,6 +6,7 @@ import { localDay } from "../../shared/game.ts";
 import { api } from "../lib/api.ts";
 import { useAuth } from "../lib/auth.tsx";
 import { formatDate, plural } from "../lib/format.ts";
+import { ThemeMenu } from "../lib/theme.tsx";
 
 const STEPS = ["Dream job", "Current skills", "Time", "Deadline", "Your plan"] as const;
 
@@ -74,6 +75,7 @@ export default function Setup() {
           <div className="bar-fill" style={{ width: `${((step + 1) / STEPS.length) * 100}%` }} />
         </div>
         <span className="setup-step">{step + 1}/{STEPS.length}</span>
+        <ThemeMenu />
       </div>
 
       <div className="setup-body">

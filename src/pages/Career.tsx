@@ -24,13 +24,13 @@ export default function Career() {
 
   return (
     <div className="career">
-      <h1 className="page-title">💼 Career hub</h1>
+      <h1 className="page-title">Career hub</h1>
       <p className="muted">
         Your AI career coach. {user!.features.ai ? "" : "(AI isn't connected on the server yet, so you'll see simpler offline suggestions.)"}
       </p>
       <div className="career-progress card panel">
         <div className="panel-head">
-          <h3>🧪 Level tests passed</h3>
+          <h3>Level tests passed</h3>
           <span className="muted">{r.passed}/{r.total}</span>
         </div>
         <div className="bar bar-purple"><div className="bar-fill" style={{ width: `${(r.passed / r.total) * 100}%` }} /></div>
@@ -132,7 +132,7 @@ function InternshipsTab({ readiness, initial }: { readiness: Readiness; initial?
           </div>
           {g.result.data.tips.length > 0 && (
             <div className="card panel">
-              <h3>💡 Application tips</h3>
+              <h3>Application tips</h3>
               <ul>{g.result.data.tips.map((t) => <li key={t}>{t}</li>)}</ul>
             </div>
           )}
@@ -268,7 +268,7 @@ function ResumeTab({ initial }: { initial?: AiResult<{ resume: Resume; input: Re
         </div>
         {g.result.data.resume.tips.length > 0 && (
           <div className="card panel no-print resume-tips">
-            <h3>💡 Before you send it</h3>
+            <h3>Before you send it</h3>
             <ul>{g.result.data.resume.tips.map((t) => <li key={t}>{t}</li>)}</ul>
           </div>
         )}

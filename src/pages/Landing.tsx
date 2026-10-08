@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useAuth } from "../lib/auth.tsx";
+import { ThemeMenu } from "../lib/theme.tsx";
 
 type Mode = "login" | "signup";
 
@@ -13,6 +14,7 @@ export default function Landing() {
           <span className="logo-mark">🚀</span> dream2role
         </div>
         <nav>
+          <ThemeMenu />
           <button className="btn btn-ghost" onClick={() => setMode("login")}>Log in</button>
           <button className="btn btn-green" onClick={() => setMode("signup")}>Sign up</button>
         </nav>
@@ -24,9 +26,12 @@ export default function Landing() {
             <span className="bob">🚀</span>
           </div>
           <h1>
-            The fun, free way to <span className="hl">land your dream job</span>.
+            Turn your dream job into a <span className="hl">clear, achievable plan</span>.
           </h1>
-          <p className="lead">Tell us where you want to go. We'll turn it into levels, streaks and a finish date you can actually hit.</p>
+          <p className="lead">
+            Tell us where you want to go and how much time you have. Dream2Role builds a personalised roadmap with levels, progress tracking and a
+            realistic finish date.
+          </p>
 
           <div className="equation" aria-label="Dream job plus current skills plus time plus deadline equals your roadmap">
             <span className="eq-chip eq-purple">🌟 Dream Job</span>
@@ -42,7 +47,7 @@ export default function Landing() {
 
           {!mode && (
             <div className="hero-cta">
-              <button className="btn btn-green btn-xl" onClick={() => setMode("signup")}>Get started</button>
+              <button className="btn btn-green btn-xl" onClick={() => setMode("signup")}>Get started free</button>
               <button className="btn btn-outline btn-xl" onClick={() => setMode("login")}>I already have an account</button>
             </div>
           )}
@@ -99,7 +104,7 @@ function AuthCard({ mode, setMode }: { mode: Mode; setMode: (m: Mode) => void })
         <button type="button" className={mode === "signup" ? "active" : ""} onClick={() => setMode("signup")}>Sign up</button>
         <button type="button" className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>Log in</button>
       </div>
-      <h2>{mode === "signup" ? "Create your profile" : "Welcome back!"}</h2>
+      <h2>{mode === "signup" ? "Create your profile" : "Welcome back"}</h2>
       {mode === "signup" && (
         <input className="input" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" required />
       )}

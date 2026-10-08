@@ -47,11 +47,11 @@ export default function Friends() {
   return (
     <div className="friends">
       <div className="friends-main">
-        <h1 className="page-title">👯 Friends Zone</h1>
+        <h1 className="page-title">Friends</h1>
 
         {data.incoming.length > 0 && (
           <div className="card panel highlight">
-            <h3>💌 Friend requests</h3>
+            <h3>Friend requests</h3>
             {data.incoming.map((p) => (
               <div key={p.id} className="person-row">
                 <span className="avatar">{p.avatar}</span>
@@ -68,7 +68,7 @@ export default function Friends() {
 
         <div className="card panel">
           <div className="panel-head">
-            <h3>🏆 This week's leaderboard</h3>
+            <h3>This week's leaderboard</h3>
             <span className="muted">Resets Monday</span>
           </div>
           {board.length === 1 && <p className="muted">Add friends to see how you stack up! 👇</p>}
@@ -81,7 +81,7 @@ export default function Friends() {
 
         {data.outgoing.length > 0 && (
           <div className="card panel">
-            <h3>⏳ Waiting for a reply</h3>
+            <h3>Waiting for a reply</h3>
             <div className="chips">
               {data.outgoing.map((p) => (
                 <span key={p.id} className="pending-chip">{p.avatar} {p.name}</span>
@@ -93,7 +93,7 @@ export default function Friends() {
 
       <aside className="side-col">
         <div className="card panel">
-          <h3>🔎 Find friends</h3>
+          <h3>Find friends</h3>
           <input className="input" placeholder="Search by name or exact email" value={q} onChange={(e) => setQ(e.target.value)} />
           {results.map((p) => (
             <div key={p.id} className="person-row">
@@ -111,7 +111,7 @@ export default function Friends() {
         </div>
 
         <div className="card panel">
-          <h3>✨ People you may know</h3>
+          <h3>People you may know</h3>
           {suggestions.length === 0 && <p className="muted">No suggestions right now. Invite a friend to learn with you!</p>}
           {suggestions.map((p) => (
             <div key={p.id} className="person-row">
