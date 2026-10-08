@@ -21,8 +21,8 @@ A Duolingo-style planner that turns **Dream Job + Current Skills + Time + Deadli
 - **Compulsory level tests.** Every level ends with an MCQ test (8 questions, pass at 70%). The next level stays locked until you pass. Each answer is locked in on the server before the correct answer is shown, and a retake gets fresh questions.
 - **Certifications sidebar** (🎓 in the nav). One certificate per level, plus a "Job-Ready <role>" capstone. Each one unlocks when you pass its level test. Pricing is **₹299 per certificate** or **₹699 for 3**. To get certified you pass an AI-generated exam (15 questions, 75%). Certificates have a public, printable verification page at `/certificate/<id>`.
 - **Career hub** (💼 in the nav):
-  - **Internship matches** unlock after passing half the level tests. The AI suggests internship types you're eligible for, why you fit, skills to highlight, gaps to close, and search links.
-  - **AI project ideas** unlock after the first level test. Each one includes the full tech stack, features, milestones, ways to use AI to build it, and a portfolio tip.
+  - **Internship matches** are open from day one, no tests needed. The AI suggests internship types you're eligible for, why you fit, skills to highlight, gaps to close, and search links.
+  - **AI project ideas** are open from day one too. Each one includes the full tech stack, features, milestones, ways to use AI to build it, and a portfolio tip.
   - **AI resume builder.** It writes a one-page resume in the format your target internship's field expects and pulls in your skills and certificates. You can download it as a PDF through the print dialog.
 
 - **Rolo, the AI coach** (🚀 "Ask Rolo" button on every page). A chat assistant that knows your dream job, plan, deadline, streak, next lesson, level tests and certificates. It explains topics, plans your study time, helps you prep for tests (without giving away answers) and points you to the right part of the app. Replies stream in as they're written.

@@ -51,19 +51,9 @@ export function certEligible(cert: CertDef, passedTests: Record<string, unknown>
   return cert.requires.every((id) => passedTests[id]);
 }
 
-/**
- * Career features unlock as the learner proves their knowledge through level tests:
- * project ideas after the first level, internships once half the levels are passed.
- */
+/** How many of the role's level tests the learner has passed. Career tools are open to everyone. */
 export function careerReadiness(goal: Pick<Goal, "roleId" | "roleTitle">, passedTests: Record<string, unknown>) {
   const skills = roleForGoal(goal).skills;
   const passed = skills.filter((s) => passedTests[s.id]).length;
-  const internshipsAt = Math.ceil(skills.length / 2);
-  return {
-    passed,
-    total: skills.length,
-    projectsUnlocked: passed >= 1,
-    internshipsUnlocked: passed >= internshipsAt,
-    internshipsAt,
-  };
+  return { passed, total: skills.length };
 }

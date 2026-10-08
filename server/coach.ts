@@ -49,7 +49,7 @@ function learnerContext(user: UserRecord, today: string): string {
     `Next step in the app: ${next}.`,
     `Skills (levels in order):\n${skills}`,
     `Certificates earned: ${user.certificates.map((c) => c.title).join(", ") || "none yet"}. ` +
-      `Career hub: project ideas ${readiness.projectsUnlocked ? "unlocked" : "locked"}, internship matches ${readiness.internshipsUnlocked ? "unlocked" : `locked until ${readiness.internshipsAt} level tests are passed`}.`,
+      `Level tests passed: ${readiness.passed}/${readiness.total}. Career hub: internship matches, project ideas and the resume builder are all open, no tests needed.`,
   ].join("\n");
 }
 

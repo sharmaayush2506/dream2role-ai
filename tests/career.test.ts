@@ -126,9 +126,20 @@ describe("levels, tests, certificates and career", () => {
     expect(pub.body.email).toBeUndefined();
   });
 
-  it("gates career tools by passed levels and builds a resume", async () => {
+  it("opens internships and projects to a brand-new learner with no tests passed", async () => {
+    token = (await call("POST", "/auth/signup", { name: "Neo", email: "neo@x.io", password: "password1" })).body.token;
+    await call("PUT", "/goal", { roleId: "frontend-dev", levels: {}, hoursPerWeek: 5 });
+    const career = await call("GET", "/career");
+    expect(career.body.readiness.passed).toBe(0);
+    expect((await call("POST", "/career/internships", {})).status).toBe(200);
+    expect((await call("POST", "/career/projects", { interests: "" })).status).toBe(200);
+  });
+
+  it("opens career tools without any tests and builds a resume", async () => {
     token = (await call("POST", "/auth/login", { email: "cara@x.io", password: "password1" })).body.token;
-    expect((await call("POST", "/career/internships", {})).status).toBe(403); // 1 of 3 needed
+    const internships = await call("POST", "/career/internships", {});
+    expect(internships.status).toBe(200);
+    expect(internships.body.data.internships.length).toBeGreaterThan(0);
     const projects = await call("POST", "/career/projects", { interests: "cricket" });
     expect(projects.status).toBe(200);
     expect(projects.body.source).toBe("offline");

@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { api, type AiResult, type Internship, type Project, type Readiness, type Resume, type ResumeInput } from "../lib/api.ts";
+import { api, type AiResult, type Internship, type Project, type Resume, type ResumeInput } from "../lib/api.ts";
 import { useAuth } from "../lib/auth.tsx";
 import ResumeView from "../components/ResumeView.tsx";
 
@@ -38,30 +38,19 @@ export default function Career() {
 
       <div className="tabs career-tabs" role="tablist">
         <button role="tab" aria-selected={tab === "internships"} className={tab === "internships" ? "active" : ""} onClick={() => setTab("internships")}>
-          🎯 Internships {!r.internshipsUnlocked && "🔒"}
+          🎯 Internships
         </button>
         <button role="tab" aria-selected={tab === "projects"} className={tab === "projects" ? "active" : ""} onClick={() => setTab("projects")}>
-          🛠️ Projects {!r.projectsUnlocked && "🔒"}
+          🛠️ Projects
         </button>
         <button role="tab" aria-selected={tab === "resume"} className={tab === "resume" ? "active" : ""} onClick={() => setTab("resume")}>
           📄 Resume
         </button>
       </div>
 
-      {tab === "internships" && <InternshipsTab readiness={r} initial={data.cache.internships} />}
-      {tab === "projects" && <ProjectsTab readiness={r} initial={data.cache.projects} />}
+      {tab === "internships" && <InternshipsTab initial={data.cache.internships} />}
+      {tab === "projects" && <ProjectsTab initial={data.cache.projects} />}
       {tab === "resume" && <ResumeTab initial={data.cache.resume} />}
-    </div>
-  );
-}
-
-function Locked({ emoji, title, need, have }: { emoji: string; title: string; need: number; have: number }) {
-  return (
-    <div className="locked-card card">
-      <div className="celebrate-emoji">{emoji}</div>
-      <h2>{title}</h2>
-      <p className="muted">Pass {need} level test{need > 1 ? "s" : ""} to unlock this. You've passed {have}.</p>
-      <div className="bar bar-purple"><div className="bar-fill" style={{ width: `${Math.min(100, (have / need) * 100)}%` }} /></div>
     </div>
   );
 }
@@ -116,15 +105,12 @@ function Thinking({ text }: { text: string }) {
   );
 }
 
-function InternshipsTab({ readiness, initial }: { readiness: Readiness; initial?: AiResult<{ internships: Internship[]; tips: string[] }> }) {
+function InternshipsTab({ initial }: { initial?: AiResult<{ internships: Internship[]; tips: string[] }> }) {
   const g = useGenerate(initial);
-  if (!readiness.internshipsUnlocked)
-    return <Locked emoji="🎯" title="Internship matches" need={readiness.internshipsAt} have={readiness.passed} />;
-
   return (
     <section>
       <div className="tab-actions">
-        <p>Internships you're eligible for right now, based on the levels you've passed.</p>
+        <p>Internships that fit your dream job and the skills you have right now.</p>
         <button className="btn btn-green" disabled={g.busy} onClick={() => g.run(api.internships)}>
           {g.result ? "Refresh matches" : "Find my internships"}
         </button>
@@ -172,10 +158,9 @@ function TagList({ label, items, tone }: { label: string; items: string[]; tone:
   );
 }
 
-function ProjectsTab({ readiness, initial }: { readiness: Readiness; initial?: AiResult<{ projects: Project[] }> }) {
+function ProjectsTab({ initial }: { initial?: AiResult<{ projects: Project[] }> }) {
   const g = useGenerate(initial);
   const [interests, setInterests] = useState("");
-  if (!readiness.projectsUnlocked) return <Locked emoji="🛠️" title="AI project ideas" need={1} have={readiness.passed} />;
 
   return (
     <section>

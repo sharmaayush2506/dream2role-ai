@@ -105,9 +105,6 @@ export interface Resume {
 export interface Readiness {
   passed: number;
   total: number;
-  projectsUnlocked: boolean;
-  internshipsUnlocked: boolean;
-  internshipsAt: number;
 }
 
 export interface Order {

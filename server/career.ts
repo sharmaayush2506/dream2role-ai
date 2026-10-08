@@ -246,8 +246,6 @@ export function registerCareerRoutes(app: Express) {
 
   app.post("/api/career/internships", requireAuth, aiLimit, async (req, res) => {
     const user = userOf(req);
-    const r = careerReadiness(goalOf(user), user.progress.passedTests);
-    if (!r.internshipsUnlocked) throw new HttpError(403, `Pass ${r.internshipsAt} level tests to unlock internship matches`);
     const out = await suggestInternships(learnerProfile(user));
     user.careerCache.internships = { ...out, at: new Date().toISOString() };
     save();
@@ -256,8 +254,6 @@ export function registerCareerRoutes(app: Express) {
 
   app.post("/api/career/projects", requireAuth, aiLimit, async (req, res) => {
     const user = userOf(req);
-    if (!careerReadiness(goalOf(user), user.progress.passedTests).projectsUnlocked)
-      throw new HttpError(403, "Pass your first level test to unlock project ideas");
     const interests = String(req.body?.interests ?? "").slice(0, 300);
     const out = await suggestProjects(learnerProfile(user), interests);
     user.careerCache.projects = { ...out, at: new Date().toISOString() };

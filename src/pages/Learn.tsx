@@ -127,12 +127,12 @@ export default function Learn() {
 
         <div className="card panel">
           <div className="panel-head">
-            <h3>Career unlocks</h3>
+            <h3>Career hub</h3>
             <span className="muted">{readiness.passed}/{readiness.total} tests</span>
           </div>
           <ul className="unlock-list">
-            <li className={readiness.projectsUnlocked ? "on" : ""}>{readiness.projectsUnlocked ? "✅" : "🔒"} AI project ideas <small>(pass 1 level test)</small></li>
-            <li className={readiness.internshipsUnlocked ? "on" : ""}>{readiness.internshipsUnlocked ? "✅" : "🔒"} Internship matches <small>(pass {readiness.internshipsAt} level tests)</small></li>
+            <li className="on">✅ Internship matches</li>
+            <li className="on">✅ AI project ideas</li>
             <li className="on">✅ AI resume builder</li>
           </ul>
           <button className="btn btn-outline btn-sm btn-block" onClick={() => navigate("/career")}>Open career hub</button>
