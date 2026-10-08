@@ -1,5 +1,6 @@
 // Adds a few demo learners so friend suggestions and the leaderboard have someone in them.
 // Usage: npm run seed   (all demo accounts use the password "demo1234")
+import "./env.ts"; // must come first: loads .env before other modules read settings
 import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 import { db, save } from "./db.ts";

@@ -1,3 +1,4 @@
+import "./env.ts"; // must come first: loads .env before other modules read settings
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import express from "express";

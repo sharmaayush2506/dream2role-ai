@@ -30,6 +30,8 @@ All AI features use the OpenAI Responses API (`server/ai.ts`, `server/coach.ts`)
 
 ## Configuration
 
+Copy `.env.example` to `.env` and fill in your keys. The server loads `.env` on startup. It's git-ignored, so keys never get committed. You can also set these as normal environment variables.
+
 | Variable | What it does |
 | --- | --- |
 | `OPENAI_API_KEY` | Turns on the AI features (OpenAI). Without it, tests, internships, projects and resumes use simple offline content marked "practice mode" or "offline", and the coach explains it isn't connected. |
