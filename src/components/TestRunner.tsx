@@ -30,13 +30,32 @@ export default function TestRunner({
   const [result, setResult] = useState<TestResult | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     api
       .startTest(kind, refId)
       .then((t) => {
+        if (cancelled) return;
+        // Resume where the learner left off if they closed the test midway.
+        const firstOpen = t.answers.findIndex((a) => a === null);
+        if (firstOpen === -1) {
+          // Every question was answered before closing: go straight to the results.
+          return api.finishTest(t.testId).then((r) => {
+            if (cancelled) return;
+            setTest(t);
+            setResult(r);
+            onFinished(r);
+          });
+        }
         setTest(t);
-        setIndex(Math.max(0, t.answers.findIndex((a) => a === null)));
+        setIndex(firstOpen);
+        setCorrectCount(t.correctSoFar);
       })
-      .catch((e) => setError(e.message));
+      .catch((e) => !cancelled && setError(e.message));
+    return () => {
+      cancelled = true;
+    };
+    // onFinished is a fresh closure on every render; starting the test once per kind/ref is what matters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kind, refId]);
 
   async function check() {

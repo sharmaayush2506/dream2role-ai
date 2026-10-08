@@ -1,10 +1,10 @@
 // Level tests, certifications, payments and AI career tools.
 import crypto from "node:crypto";
-import type { Express } from "express";
+import type { Express, NextFunction, Request, Response } from "express";
 import { db, save, type PendingTest, type UserRecord } from "./db.ts";
-import { HttpError, rateLimit, requireAuth, todayFor, userOf } from "./http.ts";
+import { HttpError, limiter, rateLimit, requireAuth, todayFor, userOf } from "./http.ts";
 import { selfView } from "./views.ts";
-import { buildResume, generateQuiz, ResumeInputSchema, suggestInternships, suggestProjects, type LearnerProfile } from "./ai.ts";
+import { aiEnabled, buildResume, generateQuiz, ResumeInputSchema, suggestInternships, suggestProjects, type LearnerProfile } from "./ai.ts";
 import { confirmPayment, createOrder } from "./payments.ts";
 import { buildPath, lessonDone, roleForGoal } from "../shared/plan.ts";
 import { awardXp, LEVEL_TEST_XP, type GameEvent } from "../shared/game.ts";
@@ -41,6 +41,7 @@ function publicTest(t: PendingTest) {
     passPercent: t.kind === "level" ? LEVEL_TEST.passPercent : CERT_TEST.passPercent,
     questions: t.questions.map((q) => ({ question: q.question, options: q.options })),
     answers: t.answers,
+    correctSoFar: t.answers.filter((a, i) => a === t.questions[i].answerIndex).length,
   };
 }
 
@@ -49,9 +50,20 @@ function certificateId() {
   return `D2R-${part()}-${part()}`;
 }
 
+// Only real AI calls cost money, so only they count toward the limits.
+const takeQuizGeneration = limiter("quiz", 30, HOUR);
+const takeCareerCall = limiter("career", 15, HOUR);
+const aiLimit = (req: Request, _res: Response, next: NextFunction) => {
+  if (aiEnabled) takeCareerCall(userOf(req).id);
+  next();
+};
+
+/** Quizzes being generated right now, so simultaneous starts share one generation. */
+const generating = new Map<string, Promise<PendingTest>>();
+
 export function registerCareerRoutes(app: Express) {
   // ---------- Tests ----------
-  app.post("/api/tests/start", requireAuth, rateLimit("test", 12, HOUR), async (req, res) => {
+  app.post("/api/tests/start", requireAuth, async (req, res) => {
     const user = userOf(req);
     const goal = goalOf(user);
     const role = roleForGoal(goal);
@@ -77,29 +89,35 @@ export function registerCareerRoutes(app: Express) {
       skills = role.skills.filter((s) => cert.requires.includes(s.id)).map((s) => ({ name: s.name, topics: s.topics }));
     }
 
-    const spec = kind === "level" ? LEVEL_TEST : CERT_TEST;
-    const { data: questions, source } = await generateQuiz({
-      roleTitle: role.title,
-      skills,
-      count: spec.questions,
-      difficulty: kind === "level" ? "level" : "certification",
-    });
+    // Reopening a test picks up the attempt already in progress instead of making a new one.
+    const existing = Object.values(user.tests).find((t) => t.ref === ref);
+    if (existing) return void res.json(publicTest(existing));
 
-    // One attempt in progress per test.
-    for (const [id, t] of Object.entries(user.tests)) if (t.ref === ref) delete user.tests[id];
-    const test: PendingTest = {
-      id: crypto.randomUUID(),
-      kind,
-      ref,
-      title,
-      questions,
-      answers: questions.map(() => null),
-      source,
-      createdAt: new Date().toISOString(),
-    };
-    user.tests[test.id] = test;
-    save();
-    res.json(publicTest(test));
+    const key = `${user.id}:${ref}`;
+    let job = generating.get(key);
+    if (!job) {
+      if (aiEnabled) takeQuizGeneration(user.id);
+      const spec = kind === "level" ? LEVEL_TEST : CERT_TEST;
+      job = generateQuiz({ roleTitle: role.title, skills, count: spec.questions, difficulty: kind === "level" ? "level" : "certification" })
+        .then(({ data: questions, source }) => {
+          const test: PendingTest = {
+            id: crypto.randomUUID(),
+            kind,
+            ref,
+            title,
+            questions,
+            answers: questions.map(() => null),
+            source,
+            createdAt: new Date().toISOString(),
+          };
+          user.tests[test.id] = test;
+          save();
+          return test;
+        })
+        .finally(() => generating.delete(key));
+      generating.set(key, job);
+    }
+    res.json(publicTest(await job));
   });
 
   function pending(user: UserRecord, id: string) {
@@ -203,7 +221,6 @@ export function registerCareerRoutes(app: Express) {
     res.json({ readiness: careerReadiness(goalOf(user), user.progress.passedTests), cache: user.careerCache });
   });
 
-  const aiLimit = rateLimit("career", 15, HOUR);
 
   app.post("/api/career/internships", requireAuth, aiLimit, async (req, res) => {
     const user = userOf(req);

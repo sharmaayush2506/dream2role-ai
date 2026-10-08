@@ -34,6 +34,7 @@ export interface TestSession {
   passPercent: number;
   questions: { question: string; options: string[] }[];
   answers: (number | null)[];
+  correctSoFar: number;
 }
 
 export interface TestResult {

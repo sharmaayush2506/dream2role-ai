@@ -70,6 +70,25 @@ describe("levels, tests, certificates and career", () => {
     expect((await call("POST", "/study", { lessonId: "statistics:3", minutes: 30 })).status).toBe(200);
   });
 
+  it("reopening or double-starting a test resumes the same attempt", async () => {
+    for (let i = 0; i < 5; i++) await call("POST", "/study", { lessonId: "statistics:3", minutes: 240 });
+    // Two starts at once (React dev mode does this) share one test.
+    const [a, b] = await Promise.all([
+      call("POST", "/tests/start", { kind: "level", ref: "statistics" }),
+      call("POST", "/tests/start", { kind: "level", ref: "statistics" }),
+    ]);
+    expect(a.body.testId).toBe(b.body.testId);
+    const stored = dbMod.db.byId(userId)!.tests[a.body.testId];
+    await call("POST", `/tests/${a.body.testId}/answer`, { index: 0, choice: stored.questions[0].answerIndex });
+    // Closing and reopening many times never creates a new test or hits a limit.
+    for (let i = 0; i < 20; i++) {
+      const again = await call("POST", "/tests/start", { kind: "level", ref: "statistics" });
+      expect(again.status).toBe(200);
+      expect(again.body.testId).toBe(a.body.testId);
+      expect(again.body.correctSoFar).toBe(1);
+    }
+  });
+
   it("can't re-answer a question, and failing doesn't pass the level", async () => {
     for (let i = 0; i < 5; i++) await call("POST", "/study", { lessonId: "statistics:3", minutes: 240 });
     const start = await call("POST", "/tests/start", { kind: "level", ref: "statistics" });
