@@ -145,5 +145,11 @@ describe("levels, tests, certificates and career", () => {
     // Without an AI key the roadmap insight is simply absent (the plan screen shows nothing extra).
     const insight = await call("POST", "/plan/insight", {});
     expect(insight.body).toEqual({ data: null, source: "offline" });
+
+    // Without AI, lesson notes come back as a basic study guide (and aren't saved).
+    const notes = await call("POST", "/lessons/sql:0/notes", { depth: "quick" });
+    expect(notes.body.source).toBe("offline");
+    expect(notes.body.data.summary).toContain("SELECT & filtering");
+    expect(dbMod.db.byId(userId)!.notesCache).toEqual({});
   });
 });

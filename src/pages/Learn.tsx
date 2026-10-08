@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { levelInfo, liveStreak, localDay, weekSummary, type GameEvent } from "../../shared/game.ts";
-import { buildPath, dailyGoalMinutes, estimate, lessonAvailable, lessonDone, nextStep, roleForGoal, type Lesson, type NextStep, type Unit } from "../../shared/plan.ts";
+import { LEVEL_LABELS, buildPath, dailyGoalMinutes, estimate, lessonAvailable, lessonDone, nextStep, roleForGoal, type Lesson, type NextStep, type Unit } from "../../shared/plan.ts";
 import { careerReadiness } from "../../shared/certs.ts";
 import { api } from "../lib/api.ts";
 import { useAuth } from "../lib/auth.tsx";
@@ -163,6 +163,7 @@ export default function Learn() {
           lesson={open}
           unit={path.find((u) => u.skill.id === open.skillId)!}
           roleTitle={goal.roleTitle}
+          levelLabel={LEVEL_LABELS[goal.levels[open.skillId] ?? 0].label}
           minutesDone={lm[open.id] ?? 0}
           done={lessonDone(open, lm)}
           onClose={() => setOpen(null)}

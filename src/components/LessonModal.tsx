@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Lesson, Unit } from "../../shared/plan.ts";
 import { minutesLabel } from "../lib/format.ts";
+import LessonNotesPanel from "./LessonNotesPanel.tsx";
 
 const SESSIONS = [15, 30, 45, 60, 90];
 
@@ -15,6 +16,7 @@ export default function LessonModal({
   lesson,
   unit,
   roleTitle,
+  levelLabel,
   minutesDone,
   done,
   onClose,
@@ -23,6 +25,7 @@ export default function LessonModal({
   lesson: Lesson;
   unit: Unit;
   roleTitle: string;
+  levelLabel: string;
   minutesDone: number;
   done: boolean;
   onClose: () => void;
@@ -31,6 +34,7 @@ export default function LessonModal({
   const [minutes, setMinutes] = useState(30);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [tab, setTab] = useState<"study" | "notes">("study");
   const pct = lesson.placedOut ? 100 : Math.min(100, (minutesDone / lesson.minutes) * 100);
   const query = encodeURIComponent(`${lesson.title} ${unit.skill.name} for ${roleTitle}`);
 
@@ -47,38 +51,60 @@ export default function LessonModal({
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal card" role="dialog" aria-label={lesson.title} onClick={(e) => e.stopPropagation()}>
+      <div className={`modal card ${tab === "notes" ? "modal-wide" : ""}`} role="dialog" aria-label={lesson.title} onClick={(e) => e.stopPropagation()}>
         <button className="popup-close" aria-label="Close" onClick={onClose}>✕</button>
         <small className="modal-kicker">{unit.skill.icon} {unit.skill.name}</small>
         <h2>{lesson.title}</h2>
 
-        <div className="lesson-progress">
-          <div className="bar bar-green bar-lg"><div className="bar-fill" style={{ width: `${pct}%` }} /></div>
-          <span>
-            {lesson.placedOut ? "You tested out of this one ⭐" : `${minutesLabel(Math.min(minutesDone, lesson.minutes))} of ${minutesLabel(lesson.minutes)}`}
-          </span>
+        <div className="tabs lesson-tabs no-print" role="tablist">
+          <button role="tab" aria-selected={tab === "study"} className={tab === "study" ? "active" : ""} onClick={() => setTab("study")}>
+            Study
+          </button>
+          <button role="tab" aria-selected={tab === "notes"} className={tab === "notes" ? "active" : ""} onClick={() => setTab("notes")}>
+            📝 Notes
+          </button>
         </div>
 
-        <ul className="tips">
-          {TIPS.slice(0, 3).map((t) => <li key={t}>{t}</li>)}
-        </ul>
-        <div className="resource-links">
-          <a href={`https://www.youtube.com/results?search_query=${query}`} target="_blank" rel="noreferrer">▶️ Videos</a>
-          <a href={`https://www.google.com/search?q=${query}+tutorial`} target="_blank" rel="noreferrer">🔎 Tutorials</a>
-        </div>
+        {tab === "notes" ? (
+          <LessonNotesPanel
+            lessonId={lesson.id}
+            lessonTitle={lesson.title}
+            skillName={unit.skill.name}
+            roleTitle={roleTitle}
+            levelLabel={levelLabel}
+          />
+        ) : (
+          <>
+            <div className="lesson-progress">
+              <div className="bar bar-green bar-lg"><div className="bar-fill" style={{ width: `${pct}%` }} /></div>
+              <span>
+                {lesson.placedOut ? "You tested out of this one ⭐" : `${minutesLabel(Math.min(minutesDone, lesson.minutes))} of ${minutesLabel(lesson.minutes)}`}
+              </span>
+            </div>
 
-        <h4>{done ? "Practice more?" : "How long did you study?"}</h4>
-        <div className="session-chips">
-          {SESSIONS.map((m) => (
-            <button key={m} className={`level-chip ${minutes === m ? "selected" : ""}`} onClick={() => setMinutes(m)}>
-              {minutesLabel(m)}
+            <ul className="tips">
+              {TIPS.slice(0, 3).map((t) => <li key={t}>{t}</li>)}
+            </ul>
+            <div className="resource-links">
+              <a href={`https://www.youtube.com/results?search_query=${query}`} target="_blank" rel="noreferrer">▶️ Videos</a>
+              <a href={`https://www.google.com/search?q=${query}+tutorial`} target="_blank" rel="noreferrer">🔎 Tutorials</a>
+              <button className="link-btn" onClick={() => setTab("notes")}>📝 Notes</button>
+            </div>
+
+            <h4>{done ? "Practice more?" : "How long did you study?"}</h4>
+            <div className="session-chips">
+              {SESSIONS.map((m) => (
+                <button key={m} className={`level-chip ${minutes === m ? "selected" : ""}`} onClick={() => setMinutes(m)}>
+                  {minutesLabel(m)}
+                </button>
+              ))}
+            </div>
+            {error && <p className="form-error">{error}</p>}
+            <button className="btn btn-green btn-block btn-xl" disabled={busy} onClick={submit}>
+              {busy ? "Saving…" : `I studied! +${minutes} XP`}
             </button>
-          ))}
-        </div>
-        {error && <p className="form-error">{error}</p>}
-        <button className="btn btn-green btn-block btn-xl" disabled={busy} onClick={submit}>
-          {busy ? "Saving…" : `I studied! +${minutes} XP`}
-        </button>
+          </>
+        )}
       </div>
     </div>
   );

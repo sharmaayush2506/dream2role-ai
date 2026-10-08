@@ -4,7 +4,7 @@ import type { Express, NextFunction, Request, Response } from "express";
 import { db, save, type PendingTest, type UserRecord } from "./db.ts";
 import { HttpError, limiter, rateLimit, requireAuth, todayFor, userOf } from "./http.ts";
 import { selfView } from "./views.ts";
-import { aiEnabled, buildResume, generateQuiz, ResumeInputSchema, roadmapInsight, suggestInternships, suggestProjects, type LearnerProfile } from "./ai.ts";
+import { aiEnabled, buildResume, generateQuiz, lessonNotes, NOTE_DEPTHS, ResumeInputSchema, roadmapInsight, suggestInternships, suggestProjects, type LearnerProfile, type NoteDepth } from "./ai.ts";
 import { confirmPayment, createOrder } from "./payments.ts";
 import { buildPath, estimate, LEVEL_LABELS, lessonDone, roleForGoal } from "../shared/plan.ts";
 import { awardXp, LEVEL_TEST_XP, type GameEvent } from "../shared/game.ts";
@@ -53,6 +53,8 @@ function certificateId() {
 // Only real AI calls cost money, so only they count toward the limits.
 const takeQuizGeneration = limiter("quiz", 30, HOUR);
 const takeCareerCall = limiter("career", 15, HOUR);
+const takeNotesCall = limiter("notes", 30, HOUR);
+const MAX_SAVED_NOTES = 40;
 const aiLimit = (req: Request, _res: Response, next: NextFunction) => {
   if (aiEnabled) takeCareerCall(userOf(req).id);
   next();
@@ -221,6 +223,41 @@ export function registerCareerRoutes(app: Express) {
     res.json({ readiness: careerReadiness(goalOf(user), user.progress.passedTests), cache: user.careerCache });
   });
 
+
+  // Personalised study notes for one lesson. Saved per learner, so reopening them is instant.
+  app.post("/api/lessons/:lessonId/notes", requireAuth, async (req, res) => {
+    const user = userOf(req);
+    const goal = goalOf(user);
+    const unit = buildPath(goal).find((u) => u.lessons.some((l) => l.id === req.params.lessonId));
+    const lesson = unit?.lessons.find((l) => l.id === req.params.lessonId);
+    if (!unit || !lesson) throw new HttpError(404, "Lesson not found");
+    const depth: NoteDepth = NOTE_DEPTHS.includes(req.body?.depth) ? req.body.depth : "detailed";
+    const focus = String(req.body?.focus ?? "").trim().slice(0, 200);
+    const key = `${lesson.id}|${depth}|${focus.toLowerCase()}`;
+
+    const saved = user.notesCache[key];
+    if (saved && !req.body?.refresh) return void res.json(saved);
+
+    if (aiEnabled) takeNotesCall(user.id);
+    const out = await lessonNotes({
+      roleTitle: roleForGoal(goal).title,
+      skillName: unit.skill.name,
+      lessonTitle: lesson.title,
+      otherTopics: unit.skill.topics.filter((t) => t !== lesson.title),
+      level: LEVEL_LABELS[goal.levels[unit.skill.id] ?? 0].label,
+      depth,
+      focus,
+    });
+    const entry = { ...out, at: new Date().toISOString() };
+    // Only keep AI-written notes; a basic offline version is cheap to rebuild.
+    if (out.source === "ai") {
+      user.notesCache[key] = entry;
+      const keys = Object.keys(user.notesCache);
+      for (const k of keys.slice(0, Math.max(0, keys.length - MAX_SAVED_NOTES))) delete user.notesCache[k];
+      save();
+    }
+    res.json(entry);
+  });
 
   // A short AI read of the learner's (just saved) roadmap, shown on the plan screen.
   app.post("/api/plan/insight", requireAuth, aiLimit, async (req, res) => {
