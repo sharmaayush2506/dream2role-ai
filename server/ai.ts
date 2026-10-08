@@ -342,7 +342,7 @@ export function suggestInternships(p: LearnerProfile) {
         InternshipSchema,
         "You are a career coach who helps early-career learners find internships they can realistically land. " +
           "Be specific about internship titles and the kinds of companies that hire for them. Never invent specific job postings or company names.",
-        `${describeLearner(p)}\n\nSuggest 6 internship types this learner is eligible for now, ordered from best fit to stretch. ` +
+        `${describeLearner(p)}\n\nSuggest 6 internship types this learner can apply for now (beginner-friendly ones if they are just starting), ordered from best fit to stretch. ` +
           "For each, explain why they fit, which skills to highlight, gaps to close, and keywords to search on job boards. Add 3 short application tips.",
       ),
     () => offlineInternships(p),
@@ -352,11 +352,17 @@ export function suggestInternships(p: LearnerProfile) {
 function offlineInternships(p: LearnerProfile): Internships {
   const strong = p.skills.filter((s) => s.testPassed).map((s) => s.name);
   const weak = p.skills.filter((s) => !s.testPassed).map((s) => s.name);
+  const learning = p.skills.filter((s) => !s.testPassed && s.percent > 0).map((s) => s.name);
+  const whyYouFit = strong.length
+    ? `You've passed level tests in ${strong.join(", ")}.`
+    : learning.length
+      ? `You're already learning ${learning.join(", ")}. Entry-level internships welcome motivated beginners.`
+      : `Entry-level ${p.roleTitle} internships welcome motivated beginners. Start your first lessons and apply as you learn.`;
   const make = (title: string, companyTypes: string[]) => ({
     title,
     companyTypes,
-    whyYouFit: `You've passed level tests in ${strong.join(", ") || "your first skills"}.`,
-    skillsToHighlight: strong,
+    whyYouFit,
+    skillsToHighlight: strong.length ? strong : ["Eagerness to learn", "Teamwork"],
     gapsToClose: weak.slice(0, 2),
     searchKeywords: `${title} internship`,
   });
