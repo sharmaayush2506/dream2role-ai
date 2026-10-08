@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import express from "express";
 import { createApp } from "./app.ts";
-import { aiEnabled, aiModel } from "./ai.ts";
+import { aiEnabled, aiModel, checkAi } from "./ai.ts";
 
 const app = createApp();
 const PORT = Number(process.env.PORT ?? 3001);
@@ -18,9 +18,10 @@ if (process.env.NODE_ENV === "production") {
 app.listen(PORT, () => {
   console.log(`Dream2Role API listening on http://localhost:${PORT}`);
   console.log(envLoaded ? `Settings loaded from ${envFile}` : `No .env file found at ${envFile}`);
-  console.log(
-    aiEnabled
-      ? `AI: ON (OpenAI, model ${aiModel})`
-      : "AI: OFF. Add OPENAI_API_KEY=... to the .env file above, then restart with npm run dev.",
-  );
+  if (!aiEnabled) {
+    console.log("AI: OFF. Add OPENAI_API_KEY=... to the .env file above, then restart with npm run dev.");
+    return;
+  }
+  console.log(`AI: key found, checking OpenAI (model ${aiModel})...`);
+  checkAi().then((r) => console.log(r.ok ? "AI: ON ✅ OpenAI connection works." : `AI: NOT WORKING ❌ ${r.reason}`));
 });

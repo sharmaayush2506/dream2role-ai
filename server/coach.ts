@@ -2,7 +2,7 @@
 import type { Express } from "express";
 import type { UserRecord } from "./db.ts";
 import { HttpError, limiter, requireAuth, todayFor, userOf } from "./http.ts";
-import { aiEnabled, aiModel, client } from "./ai.ts";
+import { aiEnabled, aiModel, client, explainAiError } from "./ai.ts";
 import { buildPath, dailyGoalMinutes, estimate, nextStep, roleForGoal } from "../shared/plan.ts";
 import { levelInfo, liveStreak, weekSummary } from "../shared/game.ts";
 import { careerReadiness } from "../shared/certs.ts";
@@ -99,8 +99,9 @@ export function registerCoachRoutes(app: Express) {
       }
       res.end();
     } catch (err) {
-      console.error("Coach request failed:", err instanceof Error ? err.message : err);
-      if (!res.headersSent) throw new HttpError(502, "Rolo couldn't answer right now. Try again in a moment.");
+      const reason = explainAiError(err);
+      console.error("Coach request failed:", reason);
+      if (!res.headersSent) throw new HttpError(502, `Rolo couldn't answer: ${reason}`);
       res.end("\n\n😵 Sorry, I lost my train of thought. Try asking again.");
     }
   });

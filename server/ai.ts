@@ -13,6 +13,37 @@ export const aiModel = MODEL;
 
 export type Source = "ai" | "offline";
 
+/** Turns an OpenAI failure into a plain-English reason with the fix. */
+export function explainAiError(err: unknown): string {
+  if (err instanceof OpenAI.AuthenticationError)
+    return "OpenAI rejected the API key (401). Check OPENAI_API_KEY in .env: it may be mistyped or revoked. Create a new key, then restart.";
+  if (err instanceof OpenAI.RateLimitError) {
+    const msg = String((err as Error).message).toLowerCase();
+    return msg.includes("quota") || msg.includes("billing")
+      ? "Your OpenAI account has no credits left (quota exceeded). Add a payment method or credits at platform.openai.com → Billing."
+      : "OpenAI is rate-limiting requests right now. Wait a minute and try again.";
+  }
+  if (err instanceof OpenAI.NotFoundError)
+    return `The model "${MODEL}" isn't available to your OpenAI account. Add OPENAI_MODEL=gpt-4o-mini (or another model you have) to .env, then restart.`;
+  if (err instanceof OpenAI.PermissionDeniedError)
+    return `Your OpenAI key doesn't have access to "${MODEL}" (403). Try another model with OPENAI_MODEL in .env, or check the key's project permissions.`;
+  if (err instanceof OpenAI.APIConnectionError)
+    return "Couldn't reach OpenAI. Check your internet connection, VPN or firewall.";
+  if (err instanceof OpenAI.APIError) return `OpenAI error ${err.status ?? ""}: ${err.message}`;
+  return err instanceof Error ? err.message : String(err);
+}
+
+/** A free check (no tokens used) that the key works and the model is available. */
+export async function checkAi(): Promise<{ ok: true } | { ok: false; reason: string }> {
+  if (!client) return { ok: false, reason: "No OPENAI_API_KEY set." };
+  try {
+    await client.models.retrieve(MODEL);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, reason: explainAiError(err) };
+  }
+}
+
 /** Ask the model for JSON matching `schema` (OpenAI Structured Outputs). */
 async function generate<T extends z.ZodType>(schema: T, instructions: string, prompt: string): Promise<z.infer<T>> {
   const response = await client!.responses.parse({
@@ -31,7 +62,7 @@ async function withFallback<T>(ai: () => Promise<T>, offline: () => T): Promise<
   try {
     return { data: await ai(), source: "ai" };
   } catch (err) {
-    console.error("AI request failed, using offline content:", err instanceof Error ? err.message : err);
+    console.error("AI request failed, using offline content:", explainAiError(err));
     return { data: offline(), source: "offline" };
   }
 }
