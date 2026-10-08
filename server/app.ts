@@ -67,6 +67,10 @@ export function createApp() {
   const app = express();
   app.use(express.json({ limit: "50kb" }));
 
+  app.get("/api/health", (_req, res) => {
+    res.json({ ok: true });
+  });
+
   // ---------- Auth ----------
   app.post("/api/auth/signup", async (req, res) => {
     const name = String(req.body?.name ?? "").trim().slice(0, 40);

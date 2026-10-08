@@ -4,6 +4,10 @@ import { fileURLToPath } from "node:url";
 import express from "express";
 import { createApp } from "./app.ts";
 import { aiEnabled, aiModel, aiProvider, checkAi } from "./ai.ts";
+import { seedDemo } from "./demo.ts";
+
+// SEED_DEMO=1 adds demo learners on startup (handy for a hosted demo where data resets on redeploy).
+if (process.env.SEED_DEMO === "1") console.log(`Demo data: ${await seedDemo()} demo learners ready (password demo1234).`);
 
 const app = createApp();
 const PORT = Number(process.env.PORT ?? 3001);
@@ -17,9 +21,15 @@ if (process.env.NODE_ENV === "production") {
 
 app.listen(PORT, () => {
   console.log(`Dream2Role API listening on http://localhost:${PORT}`);
-  console.log(envLoaded ? `Settings loaded from ${envFile}` : `No .env file found at ${envFile}`);
+  const hosted = process.env.NODE_ENV === "production";
+  if (envLoaded) console.log(`Settings loaded from ${envFile}`);
+  else if (!hosted) console.log(`No .env file found at ${envFile}`);
   if (!aiEnabled) {
-    console.log("AI: OFF. Add GEMINI_API_KEY=... (or OPENAI_API_KEY=...) to the .env file above, then restart with npm run dev.");
+    console.log(
+      hosted
+        ? "AI: OFF. Set GEMINI_API_KEY (or OPENAI_API_KEY) in your host's environment variables, then redeploy."
+        : "AI: OFF. Add GEMINI_API_KEY=... (or OPENAI_API_KEY=...) to the .env file above, then restart with npm run dev.",
+    );
     return;
   }
   const name = aiProvider === "gemini" ? "Gemini" : "OpenAI";

@@ -54,6 +54,21 @@ npm run dev    # API on :3001, web app on http://localhost:5173
 
 Other scripts: `npm test` (Vitest), `npm run typecheck`, `npm run build` + `npm start` (serves the built app and API from one port; set `JWT_SECRET` in production).
 
+## Deploy (Render, free)
+
+The repo includes a `render.yaml` blueprint that deploys the whole app (frontend + API) as one web service.
+
+1. Sign in at [render.com](https://render.com) with GitHub.
+2. **New → Blueprint**, pick this repository and the `claude/dream-job-skill-roadmap-jd6ti4` branch.
+3. When asked for `GEMINI_API_KEY`, paste your key (it stays in Render, not in git). Click **Apply**.
+4. After the build finishes (a few minutes), open the `https://<name>.onrender.com` URL.
+
+The blueprint sets `NODE_ENV=production`, a generated `JWT_SECRET`, `DEMO_PAYMENTS=1` (demo checkout, no real charges) and `SEED_DEMO=1` (demo learners such as `aarav@demo.dream2role` / `demo1234`).
+
+Free-tier notes: the service sleeps after ~15 minutes idle, so the first visit can take ~50 seconds to wake. Data is stored in a file that resets on each redeploy or restart, so treat the hosted app as a demo (attach a persistent disk or a database for real users).
+
+Manual setup on any Node host: build with `npm ci --include=dev && npm run build`, start with `npm start`, and set the environment variables above.
+
 ## Structure
 
 ```
