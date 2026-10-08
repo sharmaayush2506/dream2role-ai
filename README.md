@@ -26,7 +26,7 @@ A Duolingo-style planner that turns **Dream Job + Current Skills + Time + Deadli
 
 - **Rolo, the AI coach** (🚀 "Ask Rolo" button on every page). A chat assistant that knows your dream job, plan, deadline, streak, next lesson, level tests and certificates. It explains topics, plans your study time, helps you prep for tests (without giving away answers) and points you to the right part of the app. Replies stream in as they're written.
 
-All AI features use the OpenAI Responses API (`server/ai.ts`, `server/coach.ts`): structured outputs for tests, internships, projects and resumes, and streaming for the coach.
+All AI features go through `server/ai.ts`, which supports Google Gemini and OpenAI: structured JSON output for tests, internships, projects and resumes, and streaming for the coach.
 
 ## Configuration
 
@@ -34,8 +34,12 @@ Copy `.env.example` to `.env` and fill in your keys. The server loads `.env` on 
 
 | Variable | What it does |
 | --- | --- |
-| `OPENAI_API_KEY` | Turns on the AI features (OpenAI). Without it, tests, internships, projects and resumes use simple offline content marked "practice mode" or "offline", and the coach explains it isn't connected. |
-| `OPENAI_MODEL` | Optional model override (default `gpt-5.4-mini`). |
+| `GEMINI_API_KEY` | Turns on the AI features with Google Gemini (free key at aistudio.google.com/apikey). Used first if both AI keys are set. |
+| `GEMINI_MODEL` | Optional Gemini model (default `gemini-2.5-flash`; if that isn't available to your key, the app picks an available Flash model). |
+| `OPENAI_API_KEY` | Alternatively, turns on the AI features with OpenAI (needs billing credits). |
+| `OPENAI_MODEL` | Optional OpenAI model (default `gpt-5.4-mini`). |
+
+Without an AI key, tests, internships, projects and resumes use simple offline content marked "practice mode" or "offline", and the coach explains it isn't connected. On startup the server prints whether AI is working, or exactly why not.
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | Real payments through Razorpay Checkout. Without them, development uses a **demo checkout that charges nothing**, and production disables payments (unless `DEMO_PAYMENTS=1`). |
 | `JWT_SECRET` | Required in production. |
 | `DATA_FILE` | Where to store the JSON database (default `server/data/db.json`). |

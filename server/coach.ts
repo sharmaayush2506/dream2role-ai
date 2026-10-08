@@ -2,7 +2,7 @@
 import type { Express } from "express";
 import type { UserRecord } from "./db.ts";
 import { HttpError, limiter, requireAuth, todayFor, userOf } from "./http.ts";
-import { aiEnabled, aiModel, client, explainAiError } from "./ai.ts";
+import { aiEnabled, explainAiError, streamChat } from "./ai.ts";
 import { buildPath, dailyGoalMinutes, estimate, nextStep, roleForGoal } from "../shared/plan.ts";
 import { levelInfo, liveStreak, weekSummary } from "../shared/game.ts";
 import { careerReadiness } from "../shared/certs.ts";
@@ -11,7 +11,7 @@ const takeChat = limiter("coach", 60, 60 * 60 * 1000);
 const MAX_TURNS = 12;
 const MAX_CHARS = 2000;
 
-type ChatMessage = { role: "user" | "assistant"; content: string };
+import type { ChatMessage } from "./ai.ts";
 
 /** A snapshot of where the learner stands, so answers are about *their* plan. */
 function learnerContext(user: UserRecord, today: string): string {
@@ -80,7 +80,7 @@ export function registerCoachRoutes(app: Express) {
 
     if (!aiEnabled) {
       res.end(
-        "🚀 I'm Rolo, your AI coach! I'm not connected to my brain yet: the app owner needs to add an OPENAI_API_KEY on the server. " +
+        "🚀 I'm Rolo, your AI coach! I'm not connected to my brain yet: the app owner needs to add a GEMINI_API_KEY (or OPENAI_API_KEY) on the server. " +
           "Until then, keep going on your learning path. Every lesson counts! 💪",
       );
       return;
@@ -88,15 +88,11 @@ export function registerCoachRoutes(app: Express) {
     takeChat(user.id);
 
     try {
-      const stream = await client!.responses.create({
-        model: aiModel,
-        instructions: `${INSTRUCTIONS}\n\n<learner_context>\n${learnerContext(user, todayFor(req))}\n</learner_context>`,
-        input: messages,
-        stream: true,
-      });
-      for await (const event of stream) {
-        if (event.type === "response.output_text.delta") res.write(event.delta);
-      }
+      await streamChat(
+        `${INSTRUCTIONS}\n\n<learner_context>\n${learnerContext(user, todayFor(req))}\n</learner_context>`,
+        messages,
+        (delta) => res.write(delta),
+      );
       res.end();
     } catch (err) {
       const reason = explainAiError(err);

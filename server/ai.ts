@@ -1,20 +1,49 @@
-// All AI features go through here, using the OpenAI API. When OPENAI_API_KEY isn't set, every
-// function falls back to simple offline content so the app still works end to end.
+// All AI features go through here. Two providers are supported:
+//   - Google Gemini, when GEMINI_API_KEY is set (preferred if both keys are present)
+//   - OpenAI, when OPENAI_API_KEY is set
+// With neither, every function falls back to simple offline content so the app still works.
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
+import { ApiError as GeminiApiError, GoogleGenAI } from "@google/genai";
 import { z } from "zod";
 import type { Question } from "./db.ts";
 
-const MODEL = process.env.OPENAI_MODEL ?? "gpt-5.4-mini";
+export type Provider = "gemini" | "openai";
+export const aiProvider: Provider | null = process.env.GEMINI_API_KEY ? "gemini" : process.env.OPENAI_API_KEY ? "openai" : null;
+export const aiEnabled = aiProvider !== null;
+const PROVIDER_NAME = aiProvider === "gemini" ? "Gemini" : "OpenAI";
 
-export const aiEnabled = !!process.env.OPENAI_API_KEY;
-export const client = aiEnabled ? new OpenAI() : null;
-export const aiModel = MODEL;
+let model =
+  aiProvider === "gemini" ? (process.env.GEMINI_MODEL ?? "gemini-2.5-flash") : (process.env.OPENAI_MODEL ?? "gpt-5.4-mini");
+/** The model in use (it can be swapped at startup if the configured one isn't available). */
+export const aiModel = () => model;
+
+const openai = aiProvider === "openai" ? new OpenAI() : null;
+const gemini =
+  aiProvider === "gemini"
+    ? new GoogleGenAI({
+        apiKey: process.env.GEMINI_API_KEY,
+        ...(process.env.GEMINI_BASE_URL ? { httpOptions: { baseUrl: process.env.GEMINI_BASE_URL } } : {}),
+      })
+    : null;
 
 export type Source = "ai" | "offline";
+export type ChatMessage = { role: "user" | "assistant"; content: string };
 
-/** Turns an OpenAI failure into a plain-English reason with the fix. */
+/** Turns a provider failure into a plain-English reason with the fix. */
 export function explainAiError(err: unknown): string {
+  if (err instanceof GeminiApiError) {
+    const msg = err.message.toLowerCase();
+    if (err.status === 400 && (msg.includes("api key") || msg.includes("api_key")))
+      return "Gemini rejected the API key. Check GEMINI_API_KEY in .env (copy it again from aistudio.google.com/apikey), then restart.";
+    if (err.status === 401 || err.status === 403)
+      return "Gemini rejected the API key or it lacks permission. Create a key at aistudio.google.com/apikey, put it in .env as GEMINI_API_KEY, then restart.";
+    if (err.status === 404)
+      return `The Gemini model "${model}" wasn't found. Set GEMINI_MODEL in .env to a model from aistudio.google.com (for example gemini-2.5-flash), then restart.`;
+    if (err.status === 429)
+      return "Gemini's usage limit was reached (free tier allows a limited number of requests per minute and per day). Wait a minute and try again.";
+    return `Gemini error ${err.status}: ${err.message}`;
+  }
   if (err instanceof OpenAI.AuthenticationError)
     return "OpenAI rejected the API key (401). Check OPENAI_API_KEY in .env: it may be mistyped or revoked. Create a new key, then restart.";
   if (err instanceof OpenAI.RateLimitError) {
@@ -24,30 +53,69 @@ export function explainAiError(err: unknown): string {
       : "OpenAI is rate-limiting requests right now. Wait a minute and try again.";
   }
   if (err instanceof OpenAI.NotFoundError)
-    return `The model "${MODEL}" isn't available to your OpenAI account. Add OPENAI_MODEL=gpt-4o-mini (or another model you have) to .env, then restart.`;
+    return `The model "${model}" isn't available to your OpenAI account. Add OPENAI_MODEL=gpt-4o-mini (or another model you have) to .env, then restart.`;
   if (err instanceof OpenAI.PermissionDeniedError)
-    return `Your OpenAI key doesn't have access to "${MODEL}" (403). Try another model with OPENAI_MODEL in .env, or check the key's project permissions.`;
-  if (err instanceof OpenAI.APIConnectionError)
-    return "Couldn't reach OpenAI. Check your internet connection, VPN or firewall.";
+    return `Your OpenAI key doesn't have access to "${model}" (403). Try another model with OPENAI_MODEL in .env, or check the key's project permissions.`;
+  if (err instanceof OpenAI.APIConnectionError || (err instanceof TypeError && /fetch failed/i.test(err.message)))
+    return `Couldn't reach ${PROVIDER_NAME}. Check your internet connection, VPN or firewall.`;
   if (err instanceof OpenAI.APIError) return `OpenAI error ${err.status ?? ""}: ${err.message}`;
   return err instanceof Error ? err.message : String(err);
 }
 
+/** Picks a fast general-purpose Gemini model the key can use, e.g. when the configured one doesn't exist. */
+async function pickGeminiModel(): Promise<string | null> {
+  const names: string[] = [];
+  for await (const m of await gemini!.models.list()) {
+    if (m.name && (m.supportedActions ?? []).includes("generateContent")) names.push(m.name.replace(/^models\//, ""));
+  }
+  const usable = names.filter((n) => /^gemini-/.test(n) && !/(image|tts|audio|live|embedding|vision|thinking-exp)/.test(n));
+  return usable.find((n) => /flash/.test(n) && !/lite/.test(n)) ?? usable.find((n) => /flash/.test(n)) ?? usable[0] ?? null;
+}
+
 /** A free check (no tokens used) that the key works and the model is available. */
-export async function checkAi(): Promise<{ ok: true } | { ok: false; reason: string }> {
-  if (!client) return { ok: false, reason: "No OPENAI_API_KEY set." };
+export async function checkAi(): Promise<{ ok: true; note?: string } | { ok: false; reason: string }> {
+  if (!aiEnabled) return { ok: false, reason: "No GEMINI_API_KEY or OPENAI_API_KEY set." };
   try {
-    await client.models.retrieve(MODEL);
+    if (gemini) await gemini.models.get({ model });
+    else await openai!.models.retrieve(model);
     return { ok: true };
   } catch (err) {
+    if (gemini && err instanceof GeminiApiError && err.status === 404 && !process.env.GEMINI_MODEL) {
+      try {
+        const alt = await pickGeminiModel();
+        if (alt) {
+          const was = model;
+          model = alt;
+          return { ok: true, note: `"${was}" isn't available, so using "${alt}" instead.` };
+        }
+      } catch {
+        /* fall through to the original error */
+      }
+    }
     return { ok: false, reason: explainAiError(err) };
   }
 }
 
-/** Ask the model for JSON matching `schema` (OpenAI Structured Outputs). */
+/** JSON Schema for a zod schema, trimmed to what both providers accept. */
+function jsonSchemaFor(schema: z.ZodType): unknown {
+  return JSON.parse(JSON.stringify(z.toJSONSchema(schema)), (key, value) =>
+    key === "$schema" || key === "additionalProperties" ? undefined : value,
+  );
+}
+
+/** Ask the model for JSON matching `schema`. */
 async function generate<T extends z.ZodType>(schema: T, instructions: string, prompt: string): Promise<z.infer<T>> {
-  const response = await client!.responses.parse({
-    model: MODEL,
+  if (gemini) {
+    const response = await gemini.models.generateContent({
+      model,
+      contents: prompt,
+      config: { systemInstruction: instructions, responseMimeType: "application/json", responseJsonSchema: jsonSchemaFor(schema) },
+    });
+    if (!response.text) throw new Error("Gemini returned an empty or blocked response");
+    return schema.parse(JSON.parse(response.text));
+  }
+  const response = await openai!.responses.parse({
+    model,
     instructions,
     input: prompt,
     text: { format: zodTextFormat(schema, "result") },
@@ -56,9 +124,24 @@ async function generate<T extends z.ZodType>(schema: T, instructions: string, pr
   return response.output_parsed as z.infer<T>;
 }
 
+/** Streams a chat reply, calling `onText` with each new piece of text. */
+export async function streamChat(instructions: string, messages: ChatMessage[], onText: (delta: string) => void): Promise<void> {
+  if (gemini) {
+    const stream = await gemini.models.generateContentStream({
+      model,
+      contents: messages.map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] })),
+      config: { systemInstruction: instructions },
+    });
+    for await (const chunk of stream) if (chunk.text) onText(chunk.text);
+    return;
+  }
+  const stream = await openai!.responses.create({ model, instructions, input: messages, stream: true });
+  for await (const event of stream) if (event.type === "response.output_text.delta") onText(event.delta);
+}
+
 /** Try the AI first; on any failure (or no credentials) use the offline version. */
 async function withFallback<T>(ai: () => Promise<T>, offline: () => T): Promise<{ data: T; source: Source }> {
-  if (!client) return { data: offline(), source: "offline" };
+  if (!aiEnabled) return { data: offline(), source: "offline" };
   try {
     return { data: await ai(), source: "ai" };
   } catch (err) {
@@ -135,7 +218,7 @@ function offlineQuiz(spec: QuizSpec): Question[] {
       question: `Which of these is a real topic you'd study for ${pick.skill} as a ${spec.roleTitle}?`,
       options: [pick.topic, ...wrong],
       answerIndex: 0,
-      explanation: `"${pick.topic}" is part of ${pick.skill}. (Practice question: add an OpenAI API key for real exam questions.)`,
+      explanation: `"${pick.topic}" is part of ${pick.skill}. (Practice question: add a Gemini or OpenAI API key for real exam questions.)`,
     });
   }
   return shuffleAll(qs);
@@ -332,6 +415,6 @@ function offlineResume(input: ResumeInput, p: LearnerProfile): Resume {
     experience: lines(input.experience).map((l) => ({ title: l, organization: "", dates: "", bullets: [] })),
     education: lines(input.education).map((l) => ({ degree: l, school: "", dates: "", details: "" })),
     certifications: p.certificates,
-    tips: ["Add an OpenAI API key on the server to get a fully tailored, rewritten resume."],
+    tips: ["Add a Gemini or OpenAI API key on the server to get a fully tailored, rewritten resume."],
   };
 }
