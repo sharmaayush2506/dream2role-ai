@@ -131,7 +131,7 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 body {
-  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: 15px;
   line-height: 1.5;
   font-weight: 400;
@@ -140,7 +140,13 @@ body {
   -webkit-font-smoothing: antialiased;
   transition: background-color 0.2s, color 0.2s;
 }
+/* Type scale (Plus Jakarta Sans): Regular body, Medium/SemiBold for buttons and labels,
+   Bold for headings, ExtraBold for the most important titles. */
 h1, h2, h3, h4 { font-weight: 700; margin: 0 0 8px; letter-spacing: -0.015em; line-height: 1.25; }
+h1, .page-title, .auth-card h2, .result-hero h2, .celebrate-card h2, .drawer-head h2, .unit-banner h2,
+.stat-big, .test-score, .price-card strong, .demo-amount, .logo { font-weight: 800; }
+label, .field, .nav-item, .tabs button, .level-chip, .tag, .modal-kicker { font-weight: 500; }
+.btn, .eq-chip, .hud-stat, .nav-item.active, .tabs button.active, .level-chip.selected, .start-bubble { font-weight: 600; }
 p { margin: 0 0 8px; }
 button { font-family: inherit; }
 a { color: var(--blue-text); text-decoration: none; font-weight: 500; }
@@ -238,7 +244,7 @@ b, strong { font-weight: 600; }
 }
 .hero-copy { flex: 1 1 480px; max-width: 620px; }
 .mascot-big { display: none; }
-.hero h1 { font-size: clamp(32px, 4.6vw, 52px); line-height: 1.08; letter-spacing: -0.035em; font-weight: 800; margin-bottom: 16px; }
+.hero h1 { font-size: clamp(32px, 4.6vw, 52px); line-height: 1.1; letter-spacing: -0.025em; font-weight: 800; margin-bottom: 16px; }
 .hl { color: var(--primary); }
 .lead { font-size: 18px; color: var(--text-2); max-width: 540px; margin: 0 0 28px; }
 .equation { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 32px; }
@@ -322,7 +328,7 @@ b, strong { font-weight: 600; }
 .result-hero h2 { font-size: 26px; }
 .result-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px; }
 .stat { padding: 20px; }
-.stat-big { font-size: 28px; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
+.stat-big { font-size: 28px; font-weight: 800; color: var(--text); letter-spacing: -0.02em; }
 .stat-label { color: var(--text-2); font-size: 14px; }
 .stat-sub { margin-top: 8px; font-size: 13px; color: var(--primary-text); }
 .verdict { border-radius: var(--radius); padding: 14px; margin-bottom: 16px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; font-size: 14px; }
@@ -401,7 +407,7 @@ b, strong { font-weight: 600; }
 .path-col { flex: 1; max-width: 560px; min-width: 0; }
 .side-col { width: 340px; display: flex; flex-direction: column; gap: 14px; position: sticky; top: 84px; }
 .panel { padding: 16px 18px; }
-.panel h3 { font-size: 14px; font-weight: 600; margin: 0; }
+.panel h3 { font-size: 14px; font-weight: 700; margin: 0; }
 .panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; }
 .panel-head .muted { font-size: 13px; font-variant-numeric: tabular-nums; }
 .panel-note { margin: 10px 0 0; font-size: 13px; color: var(--text-2); }
@@ -537,7 +543,7 @@ b, strong { font-weight: 600; }
    ========================================================================= */
 .friends { display: flex; gap: 32px; max-width: 1120px; margin: 0 auto; align-items: flex-start; }
 .friends-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
-.page-title { font-size: 26px; letter-spacing: -0.03em; }
+.page-title { font-size: 26px; letter-spacing: -0.02em; }
 .leaderboard { list-style: none; padding: 0; margin: 0; }
 .friend-row { display: flex; gap: 12px; align-items: flex-start; padding: 14px 10px; border-top: 1px solid var(--border); border-radius: var(--radius-sm); }
 .friend-row.is-me { background: var(--primary-soft); border-top-color: transparent; }
@@ -579,7 +585,7 @@ b, strong { font-weight: 600; }
 .feedback { flex: 1; }
 .feedback strong { font-size: 17px; }
 .feedback p { margin: 4px 0 0; font-size: 14px; }
-.test-score { font-size: 20px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+.test-score { font-size: 20px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
 .badge-offline, .badge-ai { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; margin-left: 8px; letter-spacing: 0.02em; text-transform: none; vertical-align: middle; }
 .badge-offline { background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border); }
 .badge-ai { background: var(--violet-soft); color: var(--violet-text); }
@@ -602,7 +608,7 @@ b, strong { font-weight: 600; }
   display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; font: inherit; color: var(--text); transition: border-color 0.15s, box-shadow 0.15s;
 }
 .price-card:hover { box-shadow: var(--shadow-md); }
-.price-card strong { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+.price-card strong { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; }
 .price-card span { font-size: 13px; color: var(--text-2); }
 .price-card.best { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
 .price-card em { position: absolute; top: -10px; background: var(--primary); color: var(--on-primary); font-style: normal; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; }
@@ -620,7 +626,7 @@ b, strong { font-weight: 600; }
 .pack-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
 .small-print { font-size: 13px; }
 .demo-pay { background: var(--amber-soft); color: var(--text); border-radius: var(--radius); padding: 14px; margin: 12px 0; font-size: 14px; }
-.demo-amount { font-size: 32px; font-weight: 700; text-align: center; color: var(--text); letter-spacing: -0.02em; margin-top: 6px; }
+.demo-amount { font-size: 32px; font-weight: 800; text-align: center; color: var(--text); letter-spacing: -0.02em; margin-top: 6px; }
 
 /* =========================================================================
    Career hub
